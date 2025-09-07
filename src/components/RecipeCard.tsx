@@ -5,6 +5,7 @@ import { Clock, Users, ChefHat } from "lucide-react";
 
 export interface Recipe {
   id: string;
+  userId: string;
   title: string;
   description: string;
   image: string;

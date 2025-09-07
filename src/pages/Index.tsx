@@ -5,14 +5,24 @@ import { RecipeCard, Recipe } from "@/components/RecipeCard";
 import { RecipeModal } from "@/components/RecipeModal";
 import { mockRecipes } from "@/data/mockRecipes";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { AuthPage } from "@/components/auth/AuthPage";
 
 const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [showHero, setShowHero] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const filteredRecipes = mockRecipes.filter(recipe =>
+  // If user is not logged in, show auth page
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  // Filter recipes by current user and search term
+  const userRecipes = mockRecipes.filter(recipe => recipe.userId === user.id);
+  const filteredRecipes = userRecipes.filter(recipe =>
     recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     recipe.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
     recipe.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
