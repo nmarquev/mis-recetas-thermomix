@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { RecipeCard, Recipe } from "@/components/RecipeCard";
 import { RecipeModal } from "@/components/RecipeModal";
+import { FilterPanel, RecipeFilters } from "@/components/FilterPanel";
 import { mockRecipes } from "@/data/mockRecipes";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,6 +13,12 @@ const Index = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [showHero, setShowHero] = useState(true);
+  const [filters, setFilters] = useState<RecipeFilters>({
+    difficulty: [],
+    prepTimeRange: [0, 180],
+    servingsRange: [1, 12],
+    tags: []
+  });
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -22,11 +29,33 @@ const Index = () => {
 
   // Filter recipes by current user and search term
   const userRecipes = mockRecipes.filter(recipe => recipe.userId === user.id);
-  const filteredRecipes = userRecipes.filter(recipe =>
-    recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    recipe.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    recipe.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  
+  // Apply search and filters
+  const filteredRecipes = userRecipes.filter(recipe => {
+    // Search filter
+    const matchesSearch = !searchTerm || 
+      recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      recipe.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      recipe.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    // Difficulty filter
+    const matchesDifficulty = filters.difficulty.length === 0 || 
+      filters.difficulty.includes(recipe.difficulty);
+
+    // Prep time filter
+    const matchesPrepTime = recipe.prepTime >= filters.prepTimeRange[0] && 
+      recipe.prepTime <= filters.prepTimeRange[1];
+
+    // Servings filter
+    const matchesServings = recipe.servings >= filters.servingsRange[0] && 
+      recipe.servings <= filters.servingsRange[1];
+
+    // Tags filter
+    const matchesTags = filters.tags.length === 0 || 
+      filters.tags.some(tag => recipe.tags.includes(tag));
+
+    return matchesSearch && matchesDifficulty && matchesPrepTime && matchesServings && matchesTags;
+  });
 
   const handleViewRecipe = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
@@ -54,6 +83,19 @@ const Index = () => {
     setShowHero(false);
   };
 
+  const handleFiltersChange = (newFilters: RecipeFilters) => {
+    setFilters(newFilters);
+  };
+
+  const handleClearFilters = () => {
+    setFilters({
+      difficulty: [],
+      prepTimeRange: [0, 180],
+      servingsRange: [1, 12],
+      tags: []
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header 
@@ -68,6 +110,13 @@ const Index = () => {
       )}
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <FilterPanel 
+          recipes={userRecipes}
+          filters={filters}
+          onFiltersChange={handleFiltersChange}
+          onClearFilters={handleClearFilters}
+        />
+        
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-bold text-foreground">
