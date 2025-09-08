@@ -110,13 +110,6 @@ const Index = () => {
       )}
       
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <FilterPanel 
-          recipes={userRecipes}
-          filters={filters}
-          onFiltersChange={handleFiltersChange}
-          onClearFilters={handleClearFilters}
-        />
-        
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-bold text-foreground">
@@ -125,6 +118,14 @@ const Index = () => {
             <p className="text-muted-foreground mt-1">
               {filteredRecipes.length} receta{filteredRecipes.length !== 1 ? 's' : ''} encontrada{filteredRecipes.length !== 1 ? 's' : ''}
             </p>
+          </div>
+          <div className="w-80">
+            <FilterPanel 
+              recipes={userRecipes}
+              filters={filters}
+              onFiltersChange={handleFiltersChange}
+              onClearFilters={handleClearFilters}
+            />
           </div>
         </div>
         
