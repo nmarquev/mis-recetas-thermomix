@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Filter, ChevronDown, X } from "lucide-react";
+import { Filter, ChevronDown, X, Heart } from "lucide-react";
 import { Recipe } from "@/components/RecipeCard";
 
 export interface RecipeFilters {
@@ -14,6 +14,7 @@ export interface RecipeFilters {
   prepTimeRange: [number, number];
   servingsRange: [number, number];
   tags: string[];
+  featured?: boolean;
 }
 
 interface FilterPanelProps {
@@ -28,7 +29,11 @@ export const FilterPanel = ({ recipes, filters, onFiltersChange, onClearFilters 
 
   // Extract unique values from recipes
   const difficulties = ["Fácil", "Medio", "Difícil"];
-  const allTags = Array.from(new Set(recipes.flatMap(recipe => recipe.tags))).sort();
+  const allTags = Array.from(new Set(
+    recipes.flatMap(recipe =>
+      recipe.tags.map(tag => typeof tag === 'string' ? tag : tag.tag || tag.name || '')
+    ).filter(tag => tag.length > 0)
+  )).sort();
   const maxPrepTime = Math.max(...recipes.map(r => r.prepTime), 180);
   const maxServings = Math.max(...recipes.map(r => r.servings), 12);
 
@@ -68,13 +73,21 @@ export const FilterPanel = ({ recipes, filters, onFiltersChange, onClearFilters 
     });
   };
 
-  const hasActiveFilters = 
+  const handleFeaturedChange = (checked: boolean) => {
+    onFiltersChange({
+      ...filters,
+      featured: checked || undefined
+    });
+  };
+
+  const hasActiveFilters =
     filters.difficulty.length > 0 ||
     filters.tags.length > 0 ||
     filters.prepTimeRange[0] > 0 ||
     filters.prepTimeRange[1] < maxPrepTime ||
     filters.servingsRange[0] > 1 ||
-    filters.servingsRange[1] < maxServings;
+    filters.servingsRange[1] < maxServings ||
+    filters.featured === true;
 
   return (
     <Card className="w-full">
@@ -114,6 +127,22 @@ export const FilterPanel = ({ recipes, filters, onFiltersChange, onClearFilters 
         
         <CollapsibleContent>
           <CardContent className="space-y-4 p-4">
+            {/* Featured Filter */}
+            <div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="featured"
+                  checked={filters.featured === true}
+                  onCheckedChange={handleFeaturedChange}
+                  className="h-3 w-3"
+                />
+                <Label htmlFor="featured" className="text-xs cursor-pointer flex items-center gap-1">
+                  <Heart className="h-3 w-3 text-red-500" />
+                  Solo recetas destacadas
+                </Label>
+              </div>
+            </div>
+
             {/* Difficulty Filter */}
             <div>
               <Label className="text-xs font-medium mb-2 block">Dificultad</Label>
@@ -173,7 +202,7 @@ export const FilterPanel = ({ recipes, filters, onFiltersChange, onClearFilters 
             <div>
               <Label className="text-xs font-medium mb-2 block">Categorías</Label>
               <div className="grid grid-cols-1 gap-1 max-h-24 overflow-y-auto">
-                {allTags.slice(0, 6).map((tag) => (
+                {allTags.slice(0, 10).map((tag) => (
                   <div key={tag} className="flex items-center space-x-1">
                     <Checkbox
                       id={`tag-${tag}`}

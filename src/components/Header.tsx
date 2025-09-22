@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 interface HeaderProps {
   searchTerm: string;
@@ -63,8 +64,10 @@ export const Header = ({
                   className="pl-10"
                 />
               </div>
-              
-              <Button 
+
+              <ThemeSwitcher />
+
+              <Button
                 onClick={onImportRecipe}
                 variant="secondary"
                 size="sm"
@@ -73,8 +76,8 @@ export const Header = ({
                 <Download className="h-4 w-4" />
                 <span className="hidden sm:inline">Importar</span>
               </Button>
-              
-              <Button 
+
+              <Button
                 onClick={onAddRecipe}
                 variant="recipe"
                 size="sm"

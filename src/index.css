@@ -7,49 +7,111 @@ All colors MUST be HSL.
 */
 
 @layer base {
-  :root {
-    /* Thermomix-inspired design system */
-    --background: 35 25% 97%;
-    --foreground: 25 15% 15%;
+  :root,
+  [data-theme="violetas"] {
+    /* Purple gradient color system with contrast */
+    --background: 0 0% 100%;
+    --foreground: 255 45% 18%;
 
     --card: 0 0% 100%;
-    --card-foreground: 25 15% 15%;
+    --card-foreground: 255 45% 18%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 25 15% 15%;
+    --popover-foreground: 255 45% 18%;
 
-    /* Thermomix signature warm orange-red */
-    --primary: 15 85% 55%;
-    --primary-foreground: 0 0% 98%;
-    --primary-glow: 15 75% 65%;
+    /* Russian violet primary */
+    --primary: 255 45% 18%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 250 26% 44%;
 
-    /* Fresh herb green for secondary actions */
-    --secondary: 120 25% 88%;
-    --secondary-foreground: 120 40% 25%;
+    /* Ultra violet secondary */
+    --secondary: 250 26% 44%;
+    --secondary-foreground: 0 0% 100%;
 
-    /* Warm cream tones */
-    --muted: 35 15% 92%;
-    --muted-foreground: 25 8% 45%;
+    /* Light muted tones */
+    --muted: 266 32% 90%;
+    --muted-foreground: 255 45% 35%;
 
-    /* Accent warm gold */
-    --accent: 35 65% 75%;
-    --accent-foreground: 25 40% 15%;
+    /* African violet accent */
+    --accent: 266 32% 64%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 35 20% 88%;
-    --input: 35 20% 88%;
-    --ring: 15 85% 55%;
+    --border: 266 32% 85%;
+    --input: 266 32% 95%;
+    --ring: 255 45% 18%;
 
-    /* Beautiful gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-glow)));
-    --gradient-warm: linear-gradient(135deg, hsl(35 45% 95%), hsl(25 35% 90%));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(35 15% 98%));
-    
-    /* Shadows with warmth */
-    --shadow-recipe-card: 0 4px 20px -2px hsl(15 85% 55% / 0.1);
-    --shadow-elegant: 0 10px 40px -10px hsl(15 85% 55% / 0.15);
+    /* Purple gradient system */
+    --gradient-primary: linear-gradient(135deg, hsl(255 45% 18%), hsl(250 26% 44%), hsl(266 32% 64%));
+    --gradient-warm: linear-gradient(135deg, hsl(0 0% 100%), hsl(327 43% 95%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(266 32% 97%));
+    --gradient-hero: linear-gradient(135deg, hsl(255 45% 18%), hsl(250 26% 44%), hsl(266 32% 64%), hsl(292 28% 68%), hsl(327 43% 79%));
+
+    /* Purple shadows */
+    --shadow-recipe-card: 0 4px 20px -2px hsl(255 45% 18% / 0.1);
+    --shadow-elegant: 0 10px 40px -10px hsl(255 45% 18% / 0.15);
+
+    /* Smooth transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  [data-theme="tierra"] {
+    /* Earth tone color system */
+    --background: 0 0% 100%;
+    --foreground: 188 9% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 188 9% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 188 9% 20%;
+
+    /* Outer space primary */
+    --primary: 188 9% 20%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 123 14% 60%;
+
+    /* Ash gray secondary */
+    --secondary: 188 9% 25%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Light muted tones */
+    --muted: 45 15% 90%;
+    --muted-foreground: 188 9% 35%;
+
+    /* Cherry blossom accent */
+    --accent: 351 63% 81%;
+    --accent-foreground: 188 9% 32%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 45 15% 85%;
+    --input: 45 15% 95%;
+    --ring: 188 9% 32%;
+
+    /* Earth solid system */
+    --gradient-primary: hsl(351 63% 60%);
+    --gradient-warm: linear-gradient(135deg, hsl(0 0% 100%), hsl(19 67% 95%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(45 15% 97%));
+    --gradient-hero: linear-gradient(135deg, hsl(351 63% 81%), hsl(19 67% 91%), hsl(45 15% 85%), hsl(123 14% 73%), hsl(188 9% 32%));
+
+    /* Earth shadows */
+    --shadow-recipe-card: 0 4px 20px -2px hsl(188 9% 32% / 0.1);
+    --shadow-elegant: 0 10px 40px -10px hsl(188 9% 32% / 0.15);
     
     /* Smooth transitions */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -70,6 +132,126 @@ All colors MUST be HSL.
 
     --sidebar-border: 220 13% 91%;
 
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  [data-theme="pop"] {
+    /* Pop color system - vibrant and modern */
+    --background: 0 0% 100%;
+    --foreground: 205 100% 8%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 205 100% 8%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 205 100% 8%;
+
+    /* Rich black primary */
+    --primary: 205 100% 8%;
+    --primary-foreground: 120 45% 98%;
+    --primary-glow: 174 72% 56%;
+
+    /* Light sea green secondary */
+    --secondary: 205 100% 15%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Light muted tones */
+    --muted: 120 15% 92%;
+    --muted-foreground: 205 50% 25%;
+
+    /* Red Pantone accent */
+    --accent: 354 91% 52%;
+    --accent-foreground: 120 45% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 120 15% 85%;
+    --input: 120 15% 95%;
+    --ring: 205 100% 8%;
+
+    /* Pop solid system */
+    --gradient-primary: hsl(354 91% 52%);
+    --gradient-warm: linear-gradient(135deg, hsl(120 45% 98%), hsl(120 30% 95%));
+    --gradient-card: linear-gradient(145deg, hsl(120 45% 98%), hsl(120 20% 96%));
+    --gradient-hero: linear-gradient(135deg, hsl(205 100% 8%), hsl(174 72% 56%), hsl(354 91% 52%), hsl(25 100% 50%));
+
+    /* Pop shadows */
+    --shadow-recipe-card: 0 4px 20px -2px hsl(205 100% 8% / 0.1);
+    --shadow-elegant: 0 10px 40px -10px hsl(205 100% 8% / 0.15);
+
+    /* Smooth transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  [data-theme="frutilla"] {
+    /* Frutilla color system - warm fruit tones */
+    --background: 0 0% 100%;
+    --foreground: 355 100% 25%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 355 100% 25%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 355 100% 25%;
+
+    /* Red CMYK primary */
+    --primary: 355 100% 25%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 25 100% 50%;
+
+    /* UT Orange secondary */
+    --secondary: 355 100% 30%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Light muted tones */
+    --muted: 40 20% 92%;
+    --muted-foreground: 355 60% 35%;
+
+    /* Engineering Orange accent */
+    --accent: 15 100% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 40 20% 85%;
+    --input: 40 20% 95%;
+    --ring: 355 100% 25%;
+
+    /* Frutilla solid system */
+    --gradient-primary: hsl(25 100% 50%);
+    --gradient-warm: linear-gradient(135deg, hsl(0 0% 100%), hsl(25 100% 95%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(40 20% 97%));
+    --gradient-hero: linear-gradient(135deg, hsl(355 100% 25%), hsl(25 100% 50%), hsl(15 100% 50%), hsl(50 100% 65%), hsl(35 100% 55%));
+
+    /* Frutilla shadows */
+    --shadow-recipe-card: 0 4px 20px -2px hsl(355 100% 25% / 0.1);
+    --shadow-elegant: 0 10px 40px -10px hsl(355 100% 25% / 0.15);
+
+    /* Smooth transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 
@@ -128,5 +310,45 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  .shimmer-text {
+    color: hsl(var(--primary));
+    background: linear-gradient(
+      90deg,
+      hsl(var(--primary)) 0%,
+      hsl(var(--primary)) 20%,
+      hsl(var(--accent)) 30%,
+      rgba(255, 255, 255, 0.9) 50%,
+      hsl(var(--accent)) 70%,
+      hsl(var(--primary)) 80%,
+      hsl(var(--primary)) 100%
+    );
+    background-size: 200% auto;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: shimmer 10s ease-in-out infinite;
+  }
+
+  @supports not (-webkit-background-clip: text) {
+    .shimmer-text {
+      -webkit-text-fill-color: hsl(var(--primary));
+      background: none;
+    }
+  }
+
+  @keyframes shimmer {
+    0% {
+      background-position: -200% center;
+    }
+    50% {
+      background-position: 200% center;
+    }
+    100% {
+      background-position: 200% center;
+    }
   }
 }

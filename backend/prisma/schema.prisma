@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recipes Recipe[]
+
+  @@map("users")
+}
+
+model Recipe {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  prepTime    Int      // in minutes
+  cookTime    Int?     // in minutes
+  servings    Int
+  difficulty  String   // "Fácil" | "Medio" | "Difícil"
+  recipeType  String?
+  sourceUrl   String?  // URL if imported
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  images       RecipeImage[]
+  ingredients  Ingredient[]
+  instructions Instruction[]
+  tags         RecipeTag[]
+
+  @@map("recipes")
+}
+
+model RecipeImage {
+  id        String  @id @default(cuid())
+  recipeId  String
+  url       String  // Original URL if imported
+  localPath String? // Local file path after download
+  order     Int     // 1, 2, 3 for ordering
+  altText   String?
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@map("recipe_images")
+}
+
+model Ingredient {
+  id       String  @id @default(cuid())
+  recipeId String
+  name     String
+  amount   String
+  unit     String?
+  order    Int
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@map("ingredients")
+}
+
+model Instruction {
+  id          String  @id @default(cuid())
+  recipeId    String
+  step        Int
+  description String
+  time        String? // Thermomix time setting
+  temperature String? // Thermomix temperature setting
+  speed       String? // Thermomix speed setting
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@map("instructions")
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  name String @unique
+
+  recipes RecipeTag[]
+
+  @@map("tags")
+}
+
+model RecipeTag {
+  recipeId String
+  tagId    String
+
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([recipeId, tagId])
+  @@map("recipe_tags")
+}
