@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { kv } from '@vercel/kv';
+import { redisClient } from '../utils/redis';
 import { z } from 'zod';
 
 const registerSchema = z.object({
@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { email, name, password } = registerSchema.parse(req.body);
 
-    const existingUser = await kv.get(`user:${email}`);
+    const existingUser = await redisClient.get(`user:${email}`);
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists with this email' });
     }
@@ -36,8 +36,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       createdAt: new Date().toISOString()
     };
 
-    await kv.set(`user:${email}`, user);
-    await kv.set(`userid:${userId}`, user);
+    await redisClient.set(`user:${email}`, user);
+    await redisClient.set(`userid:${userId}`, user);
 
     const JWT_SECRET = process.env.JWT_SECRET;
     if (!JWT_SECRET) {

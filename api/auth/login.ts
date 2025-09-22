@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { kv } from '@vercel/kv';
+import { redisClient } from '../utils/redis';
 import { z } from 'zod';
 
 const loginSchema = z.object({
@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   try {
     const { email, password } = loginSchema.parse(req.body);
 
-    const user = await kv.get(`user:${email}`) as any;
+    const user = await redisClient.get(`user:${email}`);
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }

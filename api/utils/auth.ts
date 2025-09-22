@@ -1,6 +1,6 @@
 import { NextApiRequest } from 'next';
 import jwt from 'jsonwebtoken';
-import { kv } from '@vercel/kv';
+import { redisClient } from './redis';
 
 export interface AuthenticatedUser {
   id: string;
@@ -24,7 +24,7 @@ export async function authenticateToken(req: NextApiRequest): Promise<Authentica
 
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string };
 
-    const user = await kv.get(`userid:${decoded.userId}`) as any;
+    const user = await redisClient.get(`userid:${decoded.userId}`);
     if (!user) {
       return null;
     }

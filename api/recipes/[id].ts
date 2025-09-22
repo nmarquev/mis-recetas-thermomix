@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { kv } from '@vercel/kv';
+import { redisClient } from '../utils/redis';
 import { z } from 'zod';
 import { authenticateToken } from '../utils/auth';
 
@@ -59,7 +59,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 async function handleGetRecipe(req: NextApiRequest, res: NextApiResponse, user: any, recipeId: string) {
   try {
-    const recipe = await kv.get(`recipe:${recipeId}`) as any;
+    const recipe = await redisClient.get(`recipe:${recipeId}`);
 
     if (!recipe || recipe.userId !== user.id) {
       return res.status(404).json({ error: 'Recipe not found' });
@@ -76,7 +76,7 @@ async function handleUpdateRecipe(req: NextApiRequest, res: NextApiResponse, use
   try {
     const data = updateRecipeSchema.parse(req.body);
 
-    const existingRecipe = await kv.get(`recipe:${recipeId}`) as any;
+    const existingRecipe = await redisClient.get(`recipe:${recipeId}`);
     if (!existingRecipe || existingRecipe.userId !== user.id) {
       return res.status(404).json({ error: 'Recipe not found' });
     }
@@ -105,7 +105,7 @@ async function handleUpdateRecipe(req: NextApiRequest, res: NextApiResponse, use
       updatedAt: new Date().toISOString()
     };
 
-    await kv.set(`recipe:${recipeId}`, updatedRecipe);
+    await redisClient.set(`recipe:${recipeId}`, updatedRecipe);
 
     res.json(updatedRecipe);
   } catch (error) {
@@ -119,16 +119,16 @@ async function handleUpdateRecipe(req: NextApiRequest, res: NextApiResponse, use
 
 async function handleDeleteRecipe(req: NextApiRequest, res: NextApiResponse, user: any, recipeId: string) {
   try {
-    const recipe = await kv.get(`recipe:${recipeId}`) as any;
+    const recipe = await redisClient.get(`recipe:${recipeId}`);
     if (!recipe || recipe.userId !== user.id) {
       return res.status(404).json({ error: 'Recipe not found' });
     }
 
-    await kv.del(`recipe:${recipeId}`);
+    await redisClient.del(`recipe:${recipeId}`);
 
-    const userRecipeIds = await kv.get(`user_recipes:${user.id}`) as string[] || [];
+    const userRecipeIds = await redisClient.get(`user_recipes:${user.id}`) || [];
     const updatedRecipeIds = userRecipeIds.filter(id => id !== recipeId);
-    await kv.set(`user_recipes:${user.id}`, updatedRecipeIds);
+    await redisClient.set(`user_recipes:${user.id}`, updatedRecipeIds);
 
     res.json({ message: 'Recipe deleted successfully' });
   } catch (error) {

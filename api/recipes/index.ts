@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { kv } from '@vercel/kv';
+import { redisClient } from '../utils/redis';
 import { z } from 'zod';
 import { authenticateToken } from '../utils/auth';
 
@@ -52,11 +52,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
 async function handleGetRecipes(req: NextApiRequest, res: NextApiResponse, user: any) {
   try {
-    const userRecipeIds = await kv.get(`user_recipes:${user.id}`) as string[] || [];
+    const userRecipeIds = await redisClient.get(`user_recipes:${user.id}`) || [];
 
     const recipes = [];
     for (const recipeId of userRecipeIds) {
-      const recipe = await kv.get(`recipe:${recipeId}`);
+      const recipe = await redisClient.get(`recipe:${recipeId}`);
       if (recipe) {
         recipes.push(recipe);
       }
@@ -103,11 +103,11 @@ async function handleCreateRecipe(req: NextApiRequest, res: NextApiResponse, use
       updatedAt: new Date().toISOString()
     };
 
-    await kv.set(`recipe:${recipeId}`, recipe);
+    await redisClient.set(`recipe:${recipeId}`, recipe);
 
-    const userRecipeIds = await kv.get(`user_recipes:${user.id}`) as string[] || [];
+    const userRecipeIds = await redisClient.get(`user_recipes:${user.id}`) || [];
     userRecipeIds.push(recipeId);
-    await kv.set(`user_recipes:${user.id}`, userRecipeIds);
+    await redisClient.set(`user_recipes:${user.id}`, userRecipeIds);
 
     res.status(201).json(recipe);
   } catch (error) {
