@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(git merge:*)",
-      "Bash(git pull:*)"
+      "Bash(git pull:*)",
+      "WebFetch(domain:mis-recetas-opal.vercel.app)"
     ],
     "deny": [],
     "ask": []
