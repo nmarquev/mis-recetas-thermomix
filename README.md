@@ -10,7 +10,7 @@ There are several ways of editing your application.
 
 **Use Lovable**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6f9c288b-d820-426d-9cab-9258a6697374) and start prompting.
+Simply visit the http://mis-recetas-opal.vercel.app and start prompting.
 
 Changes made via Lovable will be committed automatically to this repo.
 
