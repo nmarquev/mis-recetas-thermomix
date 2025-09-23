@@ -15,7 +15,9 @@ function getRedisClient(): Redis {
     redis = new Redis(redisUrl, {
       retryDelayOnFailover: 100,
       maxRetriesPerRequest: 3,
-      lazyConnect: true
+      connectTimeout: 10000,
+      commandTimeout: 5000,
+      lazyConnect: false
     });
 
     redis.on('connect', () => {

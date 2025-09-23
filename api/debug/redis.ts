@@ -14,33 +14,56 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     console.log('REDIS_URL exists:', !!redisUrl);
     console.log('REDIS_URL prefix:', redisUrl ? redisUrl.substring(0, 20) + '...' : 'undefined');
 
-    // Test de conexión básica
+    if (!redisUrl) {
+      return res.status(500).json({
+        error: 'REDIS_URL not configured',
+        redisConfigured: false,
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    // Test de conexión básica con timeout
     console.log('Testing Redis connection...');
 
-    // Intentar hacer un ping
+    let pingResult;
     try {
       await redisClient.set('test:ping', 'pong');
-      const pingResult = await redisClient.get('test:ping');
-      console.log('Redis ping test:', pingResult);
+      pingResult = await redisClient.get('test:ping');
+      console.log('Redis ping test result:', pingResult);
+
+      if (pingResult !== 'pong') {
+        throw new Error('Ping test failed - expected pong, got: ' + pingResult);
+      }
     } catch (pingError) {
       console.error('Redis ping failed:', pingError);
       return res.status(500).json({
         error: 'Redis connection failed',
         details: pingError.message,
-        redisConfigured: !!redisUrl
+        redisConfigured: true,
+        timestamp: new Date().toISOString()
       });
     }
 
-    // Buscar usuarios existentes
+    // Buscar usuarios existentes solo si la conexión funciona
     console.log('Checking for existing users...');
-    const demoUser = await redisClient.get('user:demo@thermomix.com');
-    const chefUser = await redisClient.get('user:chef@cocina.com');
+    let demoUser, chefUser;
 
-    console.log('Demo user exists:', !!demoUser);
-    console.log('Chef user exists:', !!chefUser);
+    try {
+      demoUser = await redisClient.get('user:demo@thermomix.com');
+      chefUser = await redisClient.get('user:chef@cocina.com');
+      console.log('Demo user exists:', !!demoUser);
+      console.log('Chef user exists:', !!chefUser);
+    } catch (userError) {
+      console.error('Error checking users:', userError);
+      // Continuar sin fallar
+    }
 
     // Limpiar test
-    await redisClient.del('test:ping');
+    try {
+      await redisClient.del('test:ping');
+    } catch (cleanupError) {
+      console.error('Cleanup error:', cleanupError);
+    }
 
     console.log('=== REDIS DEBUG END ===');
 
@@ -48,6 +71,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       status: 'OK',
       redisConfigured: !!redisUrl,
       connection: 'working',
+      pingTest: pingResult === 'pong',
       users: {
         'demo@thermomix.com': !!demoUser,
         'chef@cocina.com': !!chefUser
@@ -56,10 +80,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
   } catch (error) {
-    console.error('Debug error:', error);
+    console.error('Unexpected debug error:', error);
     res.status(500).json({
       error: 'Debug failed',
       details: error.message,
+      stack: error.stack,
       timestamp: new Date().toISOString()
     });
   }
