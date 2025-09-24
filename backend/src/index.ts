@@ -21,7 +21,33 @@ app.use(helmet());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? ['https://your-domain.com']
-    : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:8080', 'http://localhost:8081', 'http://localhost:8082'],
+    : (origin, callback) => {
+        // Permitir sin origin (ej. aplicaciones móviles)
+        if (!origin) return callback(null, true);
+
+        // Permitir localhost en diferentes puertos
+        if (origin.match(/^http:\/\/localhost:\d+$/)) {
+          return callback(null, true);
+        }
+
+        // Permitir toda la red local 192.168.0.x
+        if (origin.match(/^http:\/\/192\.168\.0\.\d+:8080$/)) {
+          return callback(null, true);
+        }
+
+        // Permitir red local 172.x (Docker/WSL)
+        if (origin.match(/^http:\/\/172\.\d+\.\d+\.\d+:8080$/)) {
+          return callback(null, true);
+        }
+
+        // Permitir red local 10.x (otra red común)
+        if (origin.match(/^http:\/\/10\.\d+\.\d+\.\d+:8080$/)) {
+          return callback(null, true);
+        }
+
+        // Rechazar otros orígenes
+        callback(new Error('Not allowed by CORS'));
+      },
   credentials: true
 }));
 app.use(express.json({ limit: '10mb' }));
