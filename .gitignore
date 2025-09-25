@@ -28,3 +28,17 @@ dist-ssr
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Environment variables
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite
+
+# Uploads
+backend/uploads/
+
+# Claude
+.claude/

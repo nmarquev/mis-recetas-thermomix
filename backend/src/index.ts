@@ -10,7 +10,7 @@ dotenv.config();
 // Import routes
 import authRoutes from './routes/auth';
 import recipeRoutes from './routes/recipes';
-import importRoutes from './routes/import';
+import importRoutes from './routes/importImproved';
 import uploadRoutes from './routes/upload';
 
 const app = express();
@@ -30,18 +30,18 @@ app.use(cors({
           return callback(null, true);
         }
 
-        // Permitir toda la red local 192.168.0.x
-        if (origin.match(/^http:\/\/192\.168\.0\.\d+:8080$/)) {
+        // Permitir toda la red local 192.168.0.x (puerto 8080 y 8081)
+        if (origin.match(/^http:\/\/192\.168\.0\.\d+:808[01]$/)) {
           return callback(null, true);
         }
 
-        // Permitir red local 172.x (Docker/WSL)
-        if (origin.match(/^http:\/\/172\.\d+\.\d+\.\d+:8080$/)) {
+        // Permitir red local 172.x (Docker/WSL) (puerto 8080 y 8081)
+        if (origin.match(/^http:\/\/172\.\d+\.\d+\.\d+:808[01]$/)) {
           return callback(null, true);
         }
 
-        // Permitir red local 10.x (otra red común)
-        if (origin.match(/^http:\/\/10\.\d+\.\d+\.\d+:8080$/)) {
+        // Permitir red local 10.x (otra red común) (puerto 8080 y 8081)
+        if (origin.match(/^http:\/\/10\.\d+\.\d+\.\d+:808[01]$/)) {
           return callback(null, true);
         }
 
