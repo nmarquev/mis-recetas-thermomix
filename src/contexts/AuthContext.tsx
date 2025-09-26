@@ -5,13 +5,15 @@ interface User {
   id: string;
   email: string;
   name: string;
+  alias?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<boolean>;
-  register: (email: string, password: string, name: string) => Promise<boolean>;
+  register: (email: string, password: string, name: string, alias?: string) => Promise<boolean>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
   isLoading: boolean;
 }
 
@@ -49,7 +51,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const response = await api.auth.login(email, password);
-      const userData = { id: response.user.id, email: response.user.email, name: response.user.name };
+      const userData = { id: response.user.id, email: response.user.email, name: response.user.name, alias: response.user.alias };
       setUser(userData);
       localStorage.setItem('thermomix_user', JSON.stringify(userData));
       setIsLoading(false);
@@ -61,12 +63,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string, name: string): Promise<boolean> => {
+  const register = async (email: string, password: string, name: string, alias?: string): Promise<boolean> => {
     setIsLoading(true);
 
     try {
-      const response = await api.auth.register(email, password, name);
-      const userData = { id: response.user.id, email: response.user.email, name: response.user.name };
+      const response = await api.auth.register(email, password, name, alias);
+      const userData = { id: response.user.id, email: response.user.email, name: response.user.name, alias: response.user.alias };
       setUser(userData);
       localStorage.setItem('thermomix_user', JSON.stringify(userData));
       setIsLoading(false);
@@ -84,11 +86,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     api.auth.logout();
   };
 
+  const refreshUser = async () => {
+    try {
+      const userData = await api.auth.getProfile();
+      setUser(userData);
+      localStorage.setItem('thermomix_user', JSON.stringify(userData));
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      // If refresh fails, try to get user from localStorage
+      const savedUser = localStorage.getItem('thermomix_user');
+      if (savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          setUser(userData);
+        } catch (parseError) {
+          console.error('Error parsing saved user data:', parseError);
+        }
+      }
+    }
+  };
+
   const value = {
     user,
     login,
     register,
     logout,
+    refreshUser,
     isLoading
   };
 

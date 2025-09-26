@@ -11,6 +11,7 @@ dotenv.config();
 import authRoutes from './routes/auth';
 import recipeRoutes from './routes/recipes';
 import importRoutes from './routes/importImproved';
+import importHtmlRoutes from './routes/importHtml';
 import uploadRoutes from './routes/upload';
 
 const app = express();
@@ -30,18 +31,23 @@ app.use(cors({
           return callback(null, true);
         }
 
-        // Permitir toda la red local 192.168.0.x (puerto 8080 y 8081)
-        if (origin.match(/^http:\/\/192\.168\.0\.\d+:808[01]$/)) {
+        // Permitir toda la red local 192.168.0.x (puerto 8080-8089)
+        if (origin.match(/^http:\/\/192\.168\.0\.\d+:808[0-9]$/)) {
           return callback(null, true);
         }
 
-        // Permitir red local 172.x (Docker/WSL) (puerto 8080 y 8081)
-        if (origin.match(/^http:\/\/172\.\d+\.\d+\.\d+:808[01]$/)) {
+        // Permitir red local 172.x (Docker/WSL) (puerto 8080-8089)
+        if (origin.match(/^http:\/\/172\.\d+\.\d+\.\d+:808[0-9]$/)) {
           return callback(null, true);
         }
 
-        // Permitir red local 10.x (otra red común) (puerto 8080 y 8081)
-        if (origin.match(/^http:\/\/10\.\d+\.\d+\.\d+:808[01]$/)) {
+        // Permitir red local 10.x (otra red común) (puerto 8080-8089)
+        if (origin.match(/^http:\/\/10\.\d+\.\d+\.\d+:808[0-9]$/)) {
+          return callback(null, true);
+        }
+
+        // Permitir Cookidoo para el bookmarklet
+        if (origin && origin.match(/^https:\/\/cookidoo\.(es|com|de|fr|it)$/)) {
           return callback(null, true);
         }
 
@@ -70,6 +76,7 @@ app.get('/health', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/import', importRoutes);
+app.use('/api/import-html', importHtmlRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // Error handling middleware
@@ -94,7 +101,7 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(Number(PORT), '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌐 Server accessible on all network interfaces`);
   console.log(`📁 Upload directory: ${process.env.UPLOAD_DIR || './uploads'}`);

@@ -189,11 +189,11 @@ export const ImportRecipeModal = ({ isOpen, onClose, onImportSuccess }: ImportRe
               </div>
 
               {/* Recipe Images */}
-              {importedRecipe.images.length > 0 && (
+              {(importedRecipe.images?.length ?? 0) > 0 && (
                 <div>
-                  <h4 className="font-medium mb-2">Imágenes ({importedRecipe.images.length})</h4>
+                  <h4 className="font-medium mb-2">Imágenes ({importedRecipe.images?.length ?? 0})</h4>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {importedRecipe.images.map((image, index) => (
+                    {(importedRecipe.images || []).map((image, index) => (
                       <div key={index} className="relative group">
                         <img
                           src={resolveImageUrl(image.url)}

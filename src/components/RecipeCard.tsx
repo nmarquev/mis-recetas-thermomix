@@ -5,6 +5,7 @@ import { Clock, Users, ChefHat, Edit, Trash2, MoreVertical, Heart } from "lucide
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Recipe } from "@/types/recipe";
 import { resolveImageUrl } from "@/utils/api";
+import { isThermomixRecipe } from "@/utils/recipeUtils";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -12,9 +13,10 @@ interface RecipeCardProps {
   onEdit?: (recipe: Recipe) => void;
   onDelete?: (recipe: Recipe) => void;
   onToggleFavorite?: (recipe: Recipe) => void;
+  columns?: 2 | 3 | 4;
 }
 
-export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite }: RecipeCardProps) => {
+export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite, columns = 3 }: RecipeCardProps) => {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "Fácil": return "bg-secondary text-secondary-foreground";
@@ -27,6 +29,20 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite 
   const primaryImage = recipe.images?.[0];
   const hasMultipleImages = recipe.images && recipe.images.length > 1;
 
+  // Get dynamic image height based on columns
+  const getImageHeight = () => {
+    switch (columns) {
+      case 2:
+        return 'h-64'; // Taller for 2 columns
+      case 3:
+        return 'h-48'; // Default height for 3 columns
+      case 4:
+        return 'h-40'; // Shorter for 4 columns
+      default:
+        return 'h-48';
+    }
+  };
+
   return (
     <Card className="group overflow-hidden bg-gradient-card shadow-recipe-card hover:shadow-elegant transition-all duration-300 hover:-translate-y-1">
       <div className="relative overflow-hidden">
@@ -34,12 +50,12 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite 
           <img
             src={resolveImageUrl(primaryImage.url)}
             alt={primaryImage.altText || recipe.title}
-            className="w-full h-48 object-cover transition-transform duration-300 group-hover:scale-105"
+            className={`w-full ${getImageHeight()} object-cover transition-transform duration-300 group-hover:scale-105`}
             loading="lazy"
             crossOrigin="anonymous"
           />
         ) : (
-          <div className="w-full h-48 bg-gradient-to-br from-muted to-muted/60 flex items-center justify-center">
+          <div className={`w-full ${getImageHeight()} bg-gradient-to-br from-muted to-muted/60 flex items-center justify-center`}>
             <ChefHat className="h-12 w-12 text-muted-foreground" />
           </div>
         )}
@@ -119,14 +135,25 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite 
             <Users className="h-4 w-4" />
             <span>{recipe.servings}</span>
           </div>
-          <div className="flex items-center gap-1">
-            <ChefHat className="h-4 w-4" />
-            <span>Thermomix</span>
-          </div>
+          {isThermomixRecipe(recipe) && (
+            <div className="flex items-center gap-1">
+              <ChefHat className="h-4 w-4" />
+              <span>Thermomix</span>
+            </div>
+          )}
         </div>
+
+        {/* Recipe Type/Category */}
+        {recipe.recipeType && (
+          <div className="mt-2">
+            <Badge variant="secondary" className="text-xs">
+              {recipe.recipeType}
+            </Badge>
+          </div>
+        )}
         
-        <div className="flex flex-wrap gap-1">
-          {recipe.tags.slice(0, 3).map((tag, index) => {
+        <div className="flex flex-wrap gap-1 min-h-[3.5rem] items-start content-start">
+          {(recipe.tags || []).slice(0, 6).map((tag, index) => {
             // Handle both string tags and object tags from database
             const tagValue = typeof tag === 'string' ? tag : tag.tag || tag.name || String(tag);
             const tagKey = typeof tag === 'string' ? tag : `${tag.tagId || tag.id || index}-${tagValue}`;
@@ -137,9 +164,9 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite 
               </Badge>
             );
           })}
-          {recipe.tags.length > 3 && (
+          {(recipe.tags || []).length > 6 && (
             <Badge variant="outline" className="text-xs">
-              +{recipe.tags.length - 3}
+              +{(recipe.tags || []).length - 6}
             </Badge>
           )}
         </div>

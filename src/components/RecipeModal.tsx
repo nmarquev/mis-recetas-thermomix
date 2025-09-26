@@ -2,9 +2,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Recipe } from "@/types/recipe";
-import { Clock, Users, ChefHat, Share, Printer, Download, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, Users, ChefHat, Share, Printer, Download, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { resolveImageUrl } from "@/utils/api";
+import { getSiteName, isValidUrl } from "@/utils/siteUtils";
+import { isThermomixRecipe, hasThermomixSettings, getThermomixSettingsDisplay } from "@/utils/recipeUtils";
 
 interface RecipeModalProps {
   recipe: Recipe | null;
@@ -27,14 +29,16 @@ export const RecipeModal = ({ recipe, isOpen, onClose }: RecipeModalProps) => {
   };
 
   const nextImage = () => {
-    if (recipe.images && recipe.images.length > 1) {
-      setCurrentImageIndex((prev) => (prev + 1) % recipe.images.length);
+    const imagesLength = recipe.images?.length ?? 0;
+    if (imagesLength > 1) {
+      setCurrentImageIndex((prev) => (prev + 1) % imagesLength);
     }
   };
 
   const prevImage = () => {
-    if (recipe.images && recipe.images.length > 1) {
-      setCurrentImageIndex((prev) => (prev - 1 + recipe.images.length) % recipe.images.length);
+    const imagesLength = recipe.images?.length ?? 0;
+    if (imagesLength > 1) {
+      setCurrentImageIndex((prev) => (prev - 1 + imagesLength) % imagesLength);
     }
   };
 
@@ -63,7 +67,7 @@ export const RecipeModal = ({ recipe, isOpen, onClose }: RecipeModalProps) => {
                 </Badge>
               </div>
 
-              {recipe.images && recipe.images.length > 1 && (
+              {(recipe.images?.length ?? 0) > 1 && (
                 <>
                   <button
                     onClick={prevImage}
@@ -78,7 +82,7 @@ export const RecipeModal = ({ recipe, isOpen, onClose }: RecipeModalProps) => {
                     <ChevronRight className="h-4 w-4" />
                   </button>
                   <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/50 text-white px-2 py-1 rounded text-sm">
-                    {currentImageIndex + 1} / {recipe.images.length}
+                    {currentImageIndex + 1} / {recipe.images?.length ?? 0}
                   </div>
                 </>
               )}
@@ -96,19 +100,32 @@ export const RecipeModal = ({ recipe, isOpen, onClose }: RecipeModalProps) => {
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4" />
-                <span>{recipe.prepTime} minutos</span>
+                <span>{recipe.prepTime} min</span>
               </div>
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                <span>{recipe.servings} personas</span>
+                <span>{recipe.servings}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <ChefHat className="h-4 w-4" />
-                <span>Thermomix</span>
-              </div>
+              {isThermomixRecipe(recipe) && (
+                <div className="flex items-center gap-2">
+                  <ChefHat className="h-4 w-4" />
+                  <span>Thermomix</span>
+                </div>
+              )}
             </div>
             
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {recipe.sourceUrl && isValidUrl(recipe.sourceUrl) && (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => window.open(recipe.sourceUrl, '_blank')}
+                  className="mr-2"
+                >
+                  <ExternalLink className="h-4 w-4 mr-1" />
+                  Ver en {getSiteName(recipe.sourceUrl)}
+                </Button>
+              )}
               <Button variant="outline" size="sm">
                 <Share className="h-4 w-4 mr-1" />
                 Compartir
@@ -128,6 +145,20 @@ export const RecipeModal = ({ recipe, isOpen, onClose }: RecipeModalProps) => {
             <p className="text-muted-foreground leading-relaxed">
               {recipe.description || 'Sin descripción disponible'}
             </p>
+            {recipe.sourceUrl && isValidUrl(recipe.sourceUrl) && (
+              <p className="text-xs text-muted-foreground mt-2">
+                <span>Fuente: </span>
+                <a
+                  href={recipe.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline inline-flex items-center gap-1"
+                >
+                  {getSiteName(recipe.sourceUrl)}
+                  <ExternalLink className="h-3 w-3" />
+                </a>
+              </p>
+            )}
           </div>
 
           <div>
@@ -176,17 +207,11 @@ export const RecipeModal = ({ recipe, isOpen, onClose }: RecipeModalProps) => {
                     </span>
                     <div className="flex-1">
                       <p>{instruction.description}</p>
-                      {instruction.thermomixSettings && (
+                      {hasThermomixSettings(instruction) && (
                         <div className="flex gap-4 mt-1 text-sm text-primary">
-                          {instruction.thermomixSettings.time && (
-                            <span>⏱️ {instruction.thermomixSettings.time}</span>
-                          )}
-                          {instruction.thermomixSettings.temperature && (
-                            <span>🌡️ {instruction.thermomixSettings.temperature}</span>
-                          )}
-                          {instruction.thermomixSettings.speed && (
-                            <span>⚡ {instruction.thermomixSettings.speed}</span>
-                          )}
+                          {getThermomixSettingsDisplay(instruction).map((setting, index) => (
+                            <span key={index}>{setting}</span>
+                          ))}
                         </div>
                       )}
                     </div>

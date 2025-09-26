@@ -6,15 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Filter, ChevronDown, X, Heart } from "lucide-react";
+import { Filter, ChevronDown, X, Heart, ChefHat } from "lucide-react";
 import { Recipe } from "@/components/RecipeCard";
 
 export interface RecipeFilters {
   difficulty: string[];
   prepTimeRange: [number, number];
-  servingsRange: [number, number];
+  cookTimeRange: [number, number];
+  recipeTypes: string[];
   tags: string[];
   featured?: boolean;
+  thermomixOnly?: boolean;
 }
 
 interface FilterPanelProps {
@@ -34,8 +36,11 @@ export const FilterPanel = ({ recipes, filters, onFiltersChange, onClearFilters 
       recipe.tags.map(tag => typeof tag === 'string' ? tag : tag.tag || tag.name || '')
     ).filter(tag => tag.length > 0)
   )).sort();
+  const allRecipeTypes = Array.from(new Set(
+    recipes.map(recipe => recipe.recipeType).filter(type => type && type.length > 0)
+  )).sort();
   const maxPrepTime = Math.max(...recipes.map(r => r.prepTime), 180);
-  const maxServings = Math.max(...recipes.map(r => r.servings), 12);
+  const maxCookTime = Math.max(...recipes.map(r => r.cookTime || 0), 120);
 
   const handleDifficultyChange = (difficulty: string, checked: boolean) => {
     const newDifficulties = checked 
@@ -66,10 +71,21 @@ export const FilterPanel = ({ recipes, filters, onFiltersChange, onClearFilters 
     });
   };
 
-  const handleServingsChange = (value: number[]) => {
+  const handleCookTimeChange = (value: number[]) => {
     onFiltersChange({
       ...filters,
-      servingsRange: [value[0], value[1]]
+      cookTimeRange: [value[0], value[1]]
+    });
+  };
+
+  const handleRecipeTypeChange = (recipeType: string, checked: boolean) => {
+    const newTypes = checked
+      ? [...filters.recipeTypes, recipeType]
+      : filters.recipeTypes.filter(t => t !== recipeType);
+
+    onFiltersChange({
+      ...filters,
+      recipeTypes: newTypes
     });
   };
 
@@ -80,14 +96,23 @@ export const FilterPanel = ({ recipes, filters, onFiltersChange, onClearFilters 
     });
   };
 
+  const handleThermomixChange = (checked: boolean) => {
+    onFiltersChange({
+      ...filters,
+      thermomixOnly: checked || undefined
+    });
+  };
+
   const hasActiveFilters =
     filters.difficulty.length > 0 ||
     filters.tags.length > 0 ||
-    filters.prepTimeRange[0] > 0 ||
-    filters.prepTimeRange[1] < maxPrepTime ||
-    filters.servingsRange[0] > 1 ||
-    filters.servingsRange[1] < maxServings ||
-    filters.featured === true;
+    filters.recipeTypes.length > 0 ||
+    (filters.prepTimeRange?.[0] ?? 0) > 0 ||
+    (filters.prepTimeRange?.[1] ?? 180) < maxPrepTime ||
+    (filters.cookTimeRange?.[0] ?? 0) > 0 ||
+    (filters.cookTimeRange?.[1] ?? 120) < maxCookTime ||
+    filters.featured === true ||
+    filters.thermomixOnly === true;
 
   return (
     <Card className="w-full">
@@ -143,6 +168,22 @@ export const FilterPanel = ({ recipes, filters, onFiltersChange, onClearFilters 
               </div>
             </div>
 
+            {/* Thermomix Filter */}
+            <div>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="thermomix"
+                  checked={filters.thermomixOnly === true}
+                  onCheckedChange={handleThermomixChange}
+                  className="h-3 w-3"
+                />
+                <Label htmlFor="thermomix" className="text-xs cursor-pointer flex items-center gap-1">
+                  <ChefHat className="h-3 w-3 text-orange-500" />
+                  Solo recetas Thermomix
+                </Label>
+              </div>
+            </div>
+
             {/* Difficulty Filter */}
             <div>
               <Label className="text-xs font-medium mb-2 block">Dificultad</Label>
@@ -171,7 +212,7 @@ export const FilterPanel = ({ recipes, filters, onFiltersChange, onClearFilters 
             {/* Prep Time Filter */}
             <div>
               <Label className="text-xs font-medium mb-2 block">
-                Tiempo ({filters.prepTimeRange[0]}-{filters.prepTimeRange[1]} min)
+                Tiempo Preparación ({filters.prepTimeRange?.[0] ?? 0}-{filters.prepTimeRange?.[1] ?? 180} min)
               </Label>
               <Slider
                 value={filters.prepTimeRange}
@@ -183,19 +224,44 @@ export const FilterPanel = ({ recipes, filters, onFiltersChange, onClearFilters 
               />
             </div>
 
-            {/* Servings Filter */}
+            {/* Cook Time Filter */}
             <div>
               <Label className="text-xs font-medium mb-2 block">
-                Porciones ({filters.servingsRange[0]}-{filters.servingsRange[1]})
+                Tiempo Cocción ({filters.cookTimeRange?.[0] ?? 0}-{filters.cookTimeRange?.[1] ?? 120} min)
               </Label>
               <Slider
-                value={filters.servingsRange}
-                onValueChange={handleServingsChange}
-                max={maxServings}
-                min={1}
-                step={1}
+                value={filters.cookTimeRange}
+                onValueChange={handleCookTimeChange}
+                max={maxCookTime}
+                min={0}
+                step={5}
                 className="w-full"
               />
+            </div>
+
+            {/* Recipe Type Filter */}
+            <div>
+              <Label className="text-xs font-medium mb-2 block">Tipo de Receta</Label>
+              <div className="flex flex-wrap gap-1">
+                {allRecipeTypes.map((recipeType) => (
+                  <div key={recipeType} className="flex items-center space-x-1">
+                    <Checkbox
+                      id={`recipeType-${recipeType}`}
+                      checked={filters.recipeTypes.includes(recipeType)}
+                      onCheckedChange={(checked) =>
+                        handleRecipeTypeChange(recipeType, checked as boolean)
+                      }
+                      className="h-3 w-3"
+                    />
+                    <Label
+                      htmlFor={`recipeType-${recipeType}`}
+                      className="text-xs cursor-pointer"
+                    >
+                      {recipeType}
+                    </Label>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Tags Filter */}

@@ -16,6 +16,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [name, setName] = useState('');
+  const [alias, setAlias] = useState('');
   const { register, isLoading } = useAuth();
   const { toast } = useToast();
 
@@ -49,7 +50,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
       return;
     }
 
-    const success = await register(email, password, name);
+    const success = await register(email, password, name, alias || undefined);
     
     if (!success) {
       toast({
@@ -82,11 +83,26 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Tu nombre"
+              placeholder="Tu nombre completo"
               disabled={isLoading}
             />
           </div>
-          
+
+          <div className="space-y-2">
+            <Label htmlFor="alias">Alias (opcional)</Label>
+            <Input
+              id="alias"
+              type="text"
+              value={alias}
+              onChange={(e) => setAlias(e.target.value)}
+              placeholder="Cómo quieres que aparezca en el título"
+              disabled={isLoading}
+            />
+            <p className="text-xs text-muted-foreground">
+              Si no proporcionas un alias, se usará tu nombre
+            </p>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input

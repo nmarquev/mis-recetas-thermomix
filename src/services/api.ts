@@ -44,11 +44,11 @@ export const api = {
       return data;
     },
 
-    register: async (email: string, password: string, name: string) => {
+    register: async (email: string, password: string, name: string, alias?: string) => {
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, name, alias }),
       });
 
       if (!response.ok) {
@@ -62,6 +62,38 @@ export const api = {
 
     logout: () => {
       localStorage.removeItem('auth_token');
+    },
+
+    updateProfile: async (profileData: {
+      email?: string;
+      name?: string;
+      alias?: string;
+      currentPassword?: string;
+      newPassword?: string;
+    }) => {
+      const response = await authFetch('/auth/profile', {
+        method: 'PUT',
+        body: JSON.stringify(profileData),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
+      }
+
+      return response.json();
+    },
+
+    getProfile: async () => {
+      const response = await authFetch('/auth/profile');
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get profile');
+      }
+
+      const data = await response.json();
+      return data.user;
     },
   },
 

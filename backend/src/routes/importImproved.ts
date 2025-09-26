@@ -59,7 +59,10 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         order: img.order,
         altText: img.altText
       })),
-      ingredients: recipeData.ingredients,
+      ingredients: recipeData.ingredients.map((ingredient, index) => ({
+        ...ingredient,
+        order: index + 1
+      })),
       instructions: recipeData.instructions.map(inst => ({
         step: inst.step,
         description: inst.description,

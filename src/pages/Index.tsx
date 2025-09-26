@@ -8,12 +8,21 @@ import { ImportRecipeModal } from "@/components/ImportRecipeModal";
 import { CreateRecipeModal } from "@/components/CreateRecipeModal";
 import { EditRecipeModal } from "@/components/EditRecipeModal";
 import { DeleteRecipeDialog } from "@/components/DeleteRecipeDialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Grid3X3, Grid2X2, Grid, Columns, Filter, ChevronDown, X } from "lucide-react";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthPage } from "@/components/auth/AuthPage";
+import { isThermomixRecipe } from "@/utils/recipeUtils";
 
 const Index = () => {
+  const { toast } = useToast();
+  const { user } = useAuth();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
   const [showHero, setShowHero] = useState(true);
@@ -28,11 +37,68 @@ const Index = () => {
   const [filters, setFilters] = useState<RecipeFilters>({
     difficulty: [],
     prepTimeRange: [0, 180],
-    servingsRange: [1, 12],
-    tags: []
+    cookTimeRange: [0, 120],
+    recipeTypes: [],
+    tags: [],
+    featured: undefined,
+    thermomixOnly: undefined
   });
-  const { toast } = useToast();
-  const { user } = useAuth();
+  const [gridColumns, setGridColumns] = useState<2 | 3 | 4>(3); // Default to 3 columns
+  const [showFilters, setShowFilters] = useState(false);
+  const [displayedCount, setDisplayedCount] = useState(24); // Start with 24 items
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Apply search and filters, then sort alphabetically (only when user is logged in)
+  const allFilteredRecipes = user ? recipes.filter(recipe => {
+    // Search filter
+    const matchesSearch = !searchTerm ||
+      recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      recipe.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (recipe.tags || []).some(tag => {
+        const tagValue = typeof tag === 'string' ? tag : tag.tag || tag.name || '';
+        return tagValue.toLowerCase().includes(searchTerm.toLowerCase());
+      });
+
+    // Difficulty filter
+    const matchesDifficulty = filters.difficulty.length === 0 ||
+      filters.difficulty.includes(recipe.difficulty);
+
+    // Prep time filter
+    const matchesPrepTime = recipe.prepTime >= (filters.prepTimeRange?.[0] ?? 0) &&
+      recipe.prepTime <= (filters.prepTimeRange?.[1] ?? 180);
+
+    // Cook time filter
+    const cookTime = recipe.cookTime || 0;
+    const matchesCookTime = cookTime >= (filters.cookTimeRange?.[0] ?? 0) &&
+      cookTime <= (filters.cookTimeRange?.[1] ?? 120);
+
+    // Recipe type filter
+    const matchesRecipeType = filters.recipeTypes.length === 0 ||
+      (recipe.recipeType && filters.recipeTypes.includes(recipe.recipeType));
+
+    // Tags filter
+    const matchesTags = filters.tags.length === 0 ||
+      filters.tags.some(filterTag =>
+        (recipe.tags || []).some(recipeTag => {
+          const tagValue = typeof recipeTag === 'string' ? recipeTag : recipeTag.tag || recipeTag.name || '';
+          return tagValue === filterTag;
+        })
+      );
+
+    // Featured filter
+    const matchesFeatured = !filters.featured || recipe.featured === true;
+
+    // Thermomix filter
+    const matchesThermomix = !filters.thermomixOnly || isThermomixRecipe(recipe);
+
+    return matchesSearch && matchesDifficulty && matchesPrepTime && matchesCookTime && matchesRecipeType && matchesTags && matchesFeatured && matchesThermomix;
+  }).sort((a, b) => {
+    // Sort alphabetically by title
+    return a.title.localeCompare(b.title, 'es', { sensitivity: 'base' });
+  }) : [];
+
+  // Get displayed recipes (for pagination)
+  const filteredRecipes = allFilteredRecipes.slice(0, displayedCount);
 
   // Load recipes when user is available
   useEffect(() => {
@@ -58,48 +124,41 @@ const Index = () => {
     loadRecipes();
   }, [user, toast]);
 
+  // Scroll infinite loading effect
+  useEffect(() => {
+    if (!user) return; // Skip if not logged in
+
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+        document.documentElement.offsetHeight - 1000 && // Load more when 1000px from bottom
+        !isLoadingMore &&
+        displayedCount < allFilteredRecipes.length
+      ) {
+        setIsLoadingMore(true);
+
+        // Simulate loading delay
+        setTimeout(() => {
+          setDisplayedCount(prev => Math.min(prev + 24, allFilteredRecipes.length));
+          setIsLoadingMore(false);
+        }, 500);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [user, allFilteredRecipes.length, displayedCount, isLoadingMore]);
+
+  // Reset displayed count when filters change
+  useEffect(() => {
+    if (!user) return; // Skip if not logged in
+    setDisplayedCount(24);
+  }, [user, searchTerm, filters]);
+
   // If user is not logged in, show auth page
   if (!user) {
     return <AuthPage />;
   }
-  
-  // Apply search and filters
-  const filteredRecipes = recipes.filter(recipe => {
-    // Search filter
-    const matchesSearch = !searchTerm || 
-      recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      recipe.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      recipe.tags.some(tag => {
-        const tagValue = typeof tag === 'string' ? tag : tag.tag || tag.name || '';
-        return tagValue.toLowerCase().includes(searchTerm.toLowerCase());
-      });
-
-    // Difficulty filter
-    const matchesDifficulty = filters.difficulty.length === 0 || 
-      filters.difficulty.includes(recipe.difficulty);
-
-    // Prep time filter
-    const matchesPrepTime = recipe.prepTime >= filters.prepTimeRange[0] && 
-      recipe.prepTime <= filters.prepTimeRange[1];
-
-    // Servings filter
-    const matchesServings = recipe.servings >= filters.servingsRange[0] && 
-      recipe.servings <= filters.servingsRange[1];
-
-    // Tags filter
-    const matchesTags = filters.tags.length === 0 ||
-      filters.tags.some(filterTag =>
-        recipe.tags.some(recipeTag => {
-          const tagValue = typeof recipeTag === 'string' ? recipeTag : recipeTag.tag || recipeTag.name || '';
-          return tagValue === filterTag;
-        })
-      );
-
-    // Featured filter
-    const matchesFeatured = !filters.featured || recipe.featured === true;
-
-    return matchesSearch && matchesDifficulty && matchesPrepTime && matchesServings && matchesTags && matchesFeatured;
-  });
 
   const handleViewRecipe = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
@@ -124,8 +183,13 @@ const Index = () => {
     setShowHero(false);
     // Clear any active filters to show all recipes including the new one
     setFilters(prev => ({
-      ...prev,
-      featured: undefined
+      difficulty: prev.difficulty || [],
+      prepTimeRange: prev.prepTimeRange || [0, 180],
+      cookTimeRange: prev.cookTimeRange || [0, 120],
+      recipeTypes: prev.recipeTypes || [],
+      tags: prev.tags || [],
+      featured: undefined,
+      thermomixOnly: prev.thermomixOnly
     }));
     toast({
       title: "¡Receta importada exitosamente!",
@@ -146,8 +210,13 @@ const Index = () => {
     // Clear any active filters to show all recipes including the new one
     console.log('🔧 Clearing featured filter');
     setFilters(prev => ({
-      ...prev,
-      featured: undefined
+      difficulty: prev.difficulty || [],
+      prepTimeRange: prev.prepTimeRange || [0, 180],
+      cookTimeRange: prev.cookTimeRange || [0, 120],
+      recipeTypes: prev.recipeTypes || [],
+      tags: prev.tags || [],
+      featured: undefined,
+      thermomixOnly: prev.thermomixOnly
     }));
     console.log('🎊 Showing recipe created toast');
     toast({
@@ -275,8 +344,13 @@ const Index = () => {
     setShowHero(false);
     // Filter to show only featured recipes
     setFilters(prev => ({
-      ...prev,
-      featured: true
+      difficulty: prev.difficulty || [],
+      prepTimeRange: prev.prepTimeRange || [0, 180],
+      cookTimeRange: prev.cookTimeRange || [0, 120],
+      recipeTypes: prev.recipeTypes || [],
+      tags: prev.tags || [],
+      featured: true,
+      thermomixOnly: prev.thermomixOnly
     }));
   };
 
@@ -288,9 +362,39 @@ const Index = () => {
     setFilters({
       difficulty: [],
       prepTimeRange: [0, 180],
-      servingsRange: [1, 12],
-      tags: []
+      cookTimeRange: [0, 120],
+      recipeTypes: [],
+      tags: [],
+      featured: undefined,
+      thermomixOnly: undefined
     });
+  };
+
+  // Get grid class based on column count
+  const getGridClass = () => {
+    switch (gridColumns) {
+      case 2:
+        return 'grid grid-cols-1 md:grid-cols-2 gap-6';
+      case 3:
+        return 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+      case 4:
+        return 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6';
+      default:
+        return 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6';
+    }
+  };
+
+  const getColumnIcon = (columns: number) => {
+    switch (columns) {
+      case 2:
+        return <Grid2X2 className="h-4 w-4" />;
+      case 3:
+        return <Grid3X3 className="h-4 w-4" />;
+      case 4:
+        return <Grid className="h-4 w-4" />;
+      default:
+        return <Grid3X3 className="h-4 w-4" />;
+    }
   };
 
   return (
@@ -310,22 +414,154 @@ const Index = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-bold text-foreground">
-              {searchTerm ? `Resultados para "${searchTerm}"` : 'Mis Recetas'}
+              {searchTerm ? `Resultados para "${searchTerm}"` : `Las recetas de ${user?.alias || user?.name || 'Usuario'}`}
             </h2>
             <p className="text-muted-foreground mt-1">
-              {filteredRecipes.length} receta{filteredRecipes.length !== 1 ? 's' : ''} encontrada{filteredRecipes.length !== 1 ? 's' : ''}
+              Mostrando {filteredRecipes.length} de {allFilteredRecipes.length} receta{allFilteredRecipes.length !== 1 ? 's' : ''}
+              {displayedCount < allFilteredRecipes.length && (
+                <span className="text-primary"> • Scroll para ver más</span>
+              )}
             </p>
           </div>
-          <div className="w-80">
-            <FilterPanel
-              recipes={recipes}
-              filters={filters}
-              onFiltersChange={handleFiltersChange}
-              onClearFilters={handleClearFilters}
-            />
+          <div className="flex items-center gap-3">
+            {/* Column selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="h-9">
+                  {getColumnIcon(gridColumns)}
+                  <span className="ml-2">{gridColumns} columnas</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem
+                  onClick={() => setGridColumns(2)}
+                  className={gridColumns === 2 ? "bg-accent" : ""}
+                >
+                  <Grid2X2 className="h-4 w-4 mr-2" />
+                  2 columnas
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setGridColumns(3)}
+                  className={gridColumns === 3 ? "bg-accent" : ""}
+                >
+                  <Grid3X3 className="h-4 w-4 mr-2" />
+                  3 columnas
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setGridColumns(4)}
+                  className={gridColumns === 4 ? "bg-accent" : ""}
+                >
+                  <Grid className="h-4 w-4 mr-2" />
+                  4 columnas
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {/* Filter button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowFilters(!showFilters)}
+              className="h-9"
+            >
+              <Filter className="h-4 w-4 mr-2" />
+              Filtros
+              <ChevronDown className={`h-4 w-4 ml-2 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+            </Button>
           </div>
         </div>
-        
+
+        {/* Horizontal Filter Panel */}
+        <Collapsible open={showFilters} onOpenChange={setShowFilters}>
+          <CollapsibleContent>
+            <div className="bg-muted/50 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-medium text-foreground">Filtros</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearFilters}
+                  className="h-8 px-3"
+                >
+                  <X className="h-4 w-4 mr-2" />
+                  Limpiar
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Difficulty Filter */}
+                <div>
+                  <Label className="text-sm font-medium mb-3 block">Dificultad</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {["Fácil", "Medio", "Difícil"].map((difficulty) => (
+                      <Button
+                        key={difficulty}
+                        variant={filters.difficulty.includes(difficulty) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          const newDifficulties = filters.difficulty.includes(difficulty)
+                            ? filters.difficulty.filter(d => d !== difficulty)
+                            : [...filters.difficulty, difficulty];
+                          handleFiltersChange({ ...filters, difficulty: newDifficulties });
+                        }}
+                        className="h-8"
+                      >
+                        {difficulty}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Prep Time Filter */}
+                <div>
+                  <Label className="text-sm font-medium mb-3 block">
+                    Tiempo de preparación: {filters.prepTimeRange?.[0] ?? 0}-{filters.prepTimeRange?.[1] ?? 180} min
+                  </Label>
+                  <div className="px-2">
+                    {/* Note: You might need to import Slider and other components */}
+                  </div>
+                </div>
+
+                {/* Servings Filter */}
+                <div>
+                  <Label className="text-sm font-medium mb-3 block">
+                    Tiempo de cocción: {filters.cookTimeRange?.[0] ?? 0}-{filters.cookTimeRange?.[1] ?? 120} min
+                  </Label>
+                  <div className="px-2">
+                    {/* Note: You might need to import Slider and other components */}
+                  </div>
+                </div>
+
+                {/* Tags Filter */}
+                <div>
+                  <Label className="text-sm font-medium mb-3 block">Etiquetas</Label>
+                  <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto">
+                    {Array.from(new Set(
+                      recipes.flatMap(recipe =>
+                        recipe.tags.map(tag => typeof tag === 'string' ? tag : tag.tag || tag.name || '')
+                      ).filter(tag => tag.length > 0)
+                    )).sort().slice(0, 10).map((tag) => (
+                      <Button
+                        key={tag}
+                        variant={filters.tags.includes(tag) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          const newTags = filters.tags.includes(tag)
+                            ? filters.tags.filter(t => t !== tag)
+                            : [...filters.tags, tag];
+                          handleFiltersChange({ ...filters, tags: newTags });
+                        }}
+                        className="h-7 text-xs"
+                      >
+                        {tag}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+
         {isLoadingRecipes ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">⏳</div>
@@ -334,18 +570,36 @@ const Index = () => {
             </h3>
           </div>
         ) : filteredRecipes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredRecipes.map((recipe) => (
-              <RecipeCard
-                key={recipe.id}
-                recipe={recipe}
-                onView={handleViewRecipe}
-                onEdit={handleEditRecipe}
-                onDelete={handleDeleteRecipe}
-                onToggleFavorite={handleToggleFavorite}
-              />
-            ))}
-          </div>
+          <>
+            <div className={getGridClass()}>
+              {filteredRecipes.map((recipe) => (
+                <RecipeCard
+                  key={recipe.id}
+                  recipe={recipe}
+                  columns={gridColumns}
+                  onView={handleViewRecipe}
+                  onEdit={handleEditRecipe}
+                  onDelete={handleDeleteRecipe}
+                  onToggleFavorite={handleToggleFavorite}
+                />
+              ))}
+            </div>
+
+            {/* Loading more indicator */}
+            {isLoadingMore && (
+              <div className="text-center py-8">
+                <div className="text-4xl mb-2">⏳</div>
+                <p className="text-muted-foreground">Cargando más recetas...</p>
+              </div>
+            )}
+
+            {/* End of results indicator */}
+            {displayedCount >= allFilteredRecipes.length && allFilteredRecipes.length > 24 && (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">¡Has visto todas las recetas! 🎉</p>
+              </div>
+            )}
+          </>
         ) : (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">🔍</div>

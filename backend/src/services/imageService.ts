@@ -100,7 +100,10 @@ export class ImageService {
 
   private async processAndSaveImage(buffer: Buffer, outputPath: string): Promise<void> {
     try {
-      await sharp(buffer)
+      // Check if this is a video thumbnail that might have play button overlay
+      const processedBuffer = await this.removeVideoPlayButtonOverlay(buffer);
+
+      await sharp(processedBuffer)
         .resize(800, 600, {
           fit: 'inside',
           withoutEnlargement: true
@@ -114,6 +117,126 @@ export class ImageService {
       console.error('Error processing image with Sharp:', error);
       // Fallback: save original if Sharp fails
       await fs.writeFile(outputPath, buffer);
+    }
+  }
+
+  private async removeVideoPlayButtonOverlay(buffer: Buffer): Promise<Buffer> {
+    try {
+      const image = sharp(buffer);
+      const metadata = await image.metadata();
+
+      if (!metadata.width || !metadata.height) {
+        return buffer; // Return original if we can't get dimensions
+      }
+
+      // Common video play button positions (center of image)
+      const centerX = Math.floor(metadata.width / 2);
+      const centerY = Math.floor(metadata.height / 2);
+
+      // Define play button detection area (typically 60-120px area around center)
+      const playButtonSize = Math.floor(Math.min(120, Math.min(metadata.width, metadata.height) * 0.15));
+      const halfSize = Math.floor(playButtonSize / 2);
+
+      // Extract the center region to analyze
+      const centerRegion = await image
+        .extract({
+          left: Math.floor(Math.max(0, centerX - halfSize)),
+          top: Math.floor(Math.max(0, centerY - halfSize)),
+          width: Math.floor(Math.min(playButtonSize, metadata.width)),
+          height: Math.floor(Math.min(playButtonSize, metadata.height))
+        })
+        .raw()
+        .toBuffer({ resolveWithObject: true });
+
+      // Simple heuristic: look for high contrast areas that might be play buttons
+      // This is a basic implementation - in production you might want more sophisticated detection
+      const hasPlayButton = await this.detectPlayButtonPattern(centerRegion.data, centerRegion.info.width, centerRegion.info.height);
+
+      if (hasPlayButton) {
+        console.log('🎬 Video play button detected, attempting to remove overlay');
+
+        // Apply a gentle blur to the center area to reduce play button visibility
+        // This is safer than trying to completely remove it
+        const blurredCenter = await sharp(centerRegion.data, {
+          raw: {
+            width: centerRegion.info.width,
+            height: centerRegion.info.height,
+            channels: centerRegion.info.channels
+          }
+        })
+        .blur(2) // Gentle blur to soften play button
+        .modulate({
+          brightness: 1.1, // Slightly brighten to reduce contrast
+          saturation: 1.05 // Slightly increase saturation to make it look more natural
+        })
+        .raw()
+        .toBuffer();
+
+        // Composite the blurred center back onto the original image
+        const processedImage = await image
+          .composite([{
+            input: blurredCenter,
+            raw: {
+              width: centerRegion.info.width,
+              height: centerRegion.info.height,
+              channels: centerRegion.info.channels
+            },
+            left: Math.max(0, centerX - halfSize),
+            top: Math.max(0, centerY - halfSize)
+          }])
+          .toBuffer();
+
+        return processedImage;
+      }
+
+      return buffer; // Return original if no play button detected
+
+    } catch (error) {
+      console.error('Error in play button removal:', error);
+      return buffer; // Return original on any error
+    }
+  }
+
+  private async detectPlayButtonPattern(buffer: Buffer, width: number, height: number): Promise<boolean> {
+    try {
+      // Convert to grayscale for pattern detection
+      const grayscale = await sharp(buffer, {
+        raw: { width, height, channels: 3 }
+      })
+      .greyscale()
+      .raw()
+      .toBuffer();
+
+      // Simple edge detection to find high contrast areas
+      let edgePixels = 0;
+      const threshold = 100; // Brightness difference threshold
+
+      for (let y = 1; y < height - 1; y++) {
+        for (let x = 1; x < width - 1; x++) {
+          const idx = y * width + x;
+          const current = grayscale[idx];
+          const right = grayscale[idx + 1];
+          const bottom = grayscale[(y + 1) * width + x];
+
+          if (Math.abs(current - right) > threshold || Math.abs(current - bottom) > threshold) {
+            edgePixels++;
+          }
+        }
+      }
+
+      // If more than 15% of pixels are high-contrast edges, likely a play button
+      const edgeRatio = edgePixels / (width * height);
+      const hasPlayButton = edgeRatio > 0.15;
+
+      if (hasPlayButton) {
+        console.log(`🎯 Play button pattern detected (edge ratio: ${(edgeRatio * 100).toFixed(1)}%)`);
+      }
+
+      return hasPlayButton;
+
+    } catch (error) {
+      console.error('Error in play button detection:', error);
+      return false;
     }
   }
 

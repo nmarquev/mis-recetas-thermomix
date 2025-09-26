@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Bookmarklet - Recipe Genius</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f8f9fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .code {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            word-break: break-all;
+            margin: 10px 0;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .copy-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        .copy-button:hover {
+            background: #0056b3;
+        }
+        .steps {
+            background: #fff3cd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .step {
+            margin: 10px 0;
+            padding: 10px;
+            background: white;
+            border-left: 4px solid #4CAF50;
+            border-radius: 4px;
+        }
+        .debug {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Recipe Genius Bookmarklet - Debug Version</h1>
+
+        <div class="debug">
+            <h2>🚨 Para resolver el error "Node cannot be found"</h2>
+            <p>Esta versión incluye logging detallado en la consola del navegador para diagnosticar problemas.</p>
+        </div>
+
+        <div class="steps">
+            <h2>📋 Pasos para instalar y usar:</h2>
+
+            <div class="step">
+                <strong>1. PRIMERO:</strong> Abre la consola del navegador (F12) para ver los logs de debug
+            </div>
+
+            <div class="step">
+                <strong>2. SEGUNDO:</strong> Agrega el token de autenticación ejecutando esto en la consola:
+                <br><code>localStorage.setItem('token', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJjbWZ1ODljcGkwMDF6emo1bHU5cnlhcGw2IiwiaWF0IjoxNzU4NzczMTk4LCJleHAiOjE3NTkzNzc5OTh9.1y7tgPeyK2YJu4H8oG3UfoB-OOc1NVwiu5sv-mB-UdA');</code>
+            </div>
+
+            <div class="step">
+                <strong>3. TERCERO:</strong> Copia el código de abajo y créalo como marcador
+            </div>
+
+            <div class="step">
+                <strong>4. CUARTO:</strong> Ve a una página de receta en Cookidoo
+            </div>
+
+            <div class="step">
+                <strong>5. QUINTO:</strong> Haz clic en el bookmarklet y revisa los logs en la consola
+            </div>
+        </div>
+
+        <button class="copy-button" onclick="copyToClipboard()">📋 Copiar Bookmarklet</button>
+
+        <div class="code" id="bookmarklet-code">
+            <!-- El código se insertará aquí -->
+        </div>
+
+        <div class="debug">
+            <h3>🔍 Qué verificar en la consola:</h3>
+            <ul>
+                <li><strong>🔖 Recipe Genius Bookmarklet started</strong> - El bookmarklet inició</li>
+                <li><strong>✅ Auth token found</strong> - Se encontró el token de autenticación</li>
+                <li><strong>✅ Overlay created successfully</strong> - Se creó la interfaz</li>
+                <li><strong>📊 Sending data to API</strong> - Se están enviando los datos</li>
+                <li><strong>✅ Recipe extracted successfully</strong> - ¡La receta se extrajo!</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const bookmarkletCode = `javascript:(function(){
+    'use strict';
+
+    console.log('🔖 Recipe Genius Bookmarklet started');
+    console.log('📍 Current URL:', window.location.href);
+    console.log('📄 Page title:', document.title);
+
+    const API_BASE = 'http://localhost:3003';
+    const API_ENDPOINT = API_BASE + '/api/import-html';
+
+    if (window.recipeGeniusRunning) {
+        console.log('⚠️ Bookmarklet already running');
+        return;
+    }
+    window.recipeGeniusRunning = true;
+
+    function getAuthToken() {
+        try {
+            const token = localStorage.getItem('authToken') ||
+                         localStorage.getItem('token') ||
+                         localStorage.getItem('jwt') ||
+                         localStorage.getItem('auth_token');
+
+            console.log('🔍 Looking for auth tokens in localStorage');
+            console.log('authToken:', !!localStorage.getItem('authToken'));
+            console.log('token:', !!localStorage.getItem('token'));
+            console.log('jwt:', !!localStorage.getItem('jwt'));
+            console.log('auth_token:', !!localStorage.getItem('auth_token'));
+
+            if (!token) {
+                throw new Error('No authentication token found. Please add token to localStorage first.');
+            }
+
+            console.log('✅ Auth token found:', token.substring(0, 20) + '...');
+            return token;
+        } catch (error) {
+            console.error('❌ Auth token error:', error);
+            throw error;
+        }
+    }
+
+    function createOverlay() {
+        try {
+            console.log('🎨 Creating overlay...');
+
+            const existing = document.getElementById('recipe-genius-overlay');
+            if (existing) {
+                console.log('🗑️ Removing existing overlay');
+                existing.remove();
+            }
+
+            const style = document.createElement('style');
+            style.id = 'recipe-genius-styles';
+            style.textContent = \`
+                #recipe-genius-overlay {
+                    position: fixed !important;
+                    top: 0 !important;
+                    left: 0 !important;
+                    width: 100% !important;
+                    height: 100% !important;
+                    background: rgba(0,0,0,0.8) !important;
+                    z-index: 999999 !important;
+                    display: flex !important;
+                    justify-content: center !important;
+                    align-items: center !important;
+                    font-family: system-ui, -apple-system, sans-serif !important;
+                }
+                #recipe-genius-modal {
+                    background: white !important;
+                    border-radius: 12px !important;
+                    padding: 24px !important;
+                    max-width: 500px !important;
+                    width: 90% !important;
+                    max-height: 80vh !important;
+                    overflow-y: auto !important;
+                    box-shadow: 0 10px 30px rgba(0,0,0,0.3) !important;
+                    position: relative !important;
+                }
+                .recipe-genius-status {
+                    padding: 12px !important;
+                    border-radius: 6px !important;
+                    margin: 16px 0 !important;
+                    font-weight: 500 !important;
+                }
+                .status-loading {
+                    background: #e3f2fd !important;
+                    color: #1976d2 !important;
+                    border: 1px solid #bbdefb !important;
+                }
+                .status-success {
+                    background: #e8f5e8 !important;
+                    color: #2e7d32 !important;
+                    border: 1px solid #a5d6a7 !important;
+                }
+                .status-error {
+                    background: #ffebee !important;
+                    color: #c62828 !important;
+                    border: 1px solid #ffcdd2 !important;
+                }
+                .rg-btn {
+                    padding: 10px 20px !important;
+                    border: none !important;
+                    border-radius: 6px !important;
+                    cursor: pointer !important;
+                    font-weight: 500 !important;
+                    font-size: 14px !important;
+                    text-decoration: none !important;
+                    margin: 5px !important;
+                }
+                .rg-btn-primary {
+                    background: #4CAF50 !important;
+                    color: white !important;
+                }
+                .rg-btn-secondary {
+                    background: #f5f5f5 !important;
+                    color: #666 !important;
+                    border: 1px solid #ddd !important;
+                }
+            \`;
+
+            document.head.appendChild(style);
+            console.log('✅ Styles added to head');
+
+            const overlay = document.createElement('div');
+            overlay.id = 'recipe-genius-overlay';
+            overlay.innerHTML = \`
+                <div id="recipe-genius-modal">
+                    <h2 style="color: #2c3e50; margin: 0 0 16px 0; font-size: 20px; font-weight: 600;">🍳 Thermomix Recipe Genius</h2>
+                    <div id="recipe-genius-content">
+                        <div class="recipe-genius-status status-loading">
+                            🔄 Analyzing page for recipes...
+                        </div>
+                    </div>
+                </div>
+            \`;
+
+            document.body.appendChild(overlay);
+            console.log('✅ Overlay added to body');
+
+            overlay.onclick = function(e) {
+                if (e.target === overlay) {
+                    console.log('🗑️ Closing overlay via background click');
+                    overlay.remove();
+                    window.recipeGeniusRunning = false;
+                }
+            };
+
+            console.log('✅ Overlay created successfully');
+            return overlay;
+
+        } catch (error) {
+            console.error('❌ Error creating overlay:', error);
+            alert('Error creating overlay: ' + error.message);
+            throw error;
+        }
+    }
+
+    function updateContent(html) {
+        try {
+            console.log('🔄 Updating content...');
+            const content = document.getElementById('recipe-genius-content');
+            if (content) {
+                content.innerHTML = html;
+                console.log('✅ Content updated');
+            } else {
+                console.error('❌ Content element not found');
+            }
+        } catch (error) {
+            console.error('❌ Error updating content:', error);
+        }
+    }
+
+    function showSuccess(data) {
+        try {
+            console.log('🎉 Showing success:', data);
+            const recipe = data.recipe;
+            const html = \`
+                <div class="recipe-genius-status status-success">
+                    ✅ Recipe extracted successfully!
+                </div>
+                <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin: 16px 0; background: #f9f9f9;">
+                    <h3 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 18px;">\${recipe.title}</h3>
+                    <p style="margin: 4px 0; color: #666; font-size: 14px;"><strong>Ingredients:</strong> \${recipe.ingredients.length} items</p>
+                    <p style="margin: 4px 0; color: #666; font-size: 14px;"><strong>Instructions:</strong> \${recipe.instructions.length} steps</p>
+                </div>
+                <div style="text-align: center;">
+                    <button class="rg-btn rg-btn-primary" onclick="window.open('http://localhost:8080', '_blank')">Open Recipe Genius</button>
+                    <button class="rg-btn rg-btn-secondary" onclick="document.getElementById('recipe-genius-overlay').remove(); window.recipeGeniusRunning = false;">Close</button>
+                </div>
+            \`;
+            updateContent(html);
+        } catch (error) {
+            console.error('❌ Error showing success:', error);
+        }
+    }
+
+    function showError(message) {
+        try {
+            console.error('❌ Showing error:', message);
+            const html = \`
+                <div class="recipe-genius-status status-error">
+                    ❌ \${message}
+                </div>
+                <div style="text-align: center;">
+                    <button class="rg-btn rg-btn-secondary" onclick="document.getElementById('recipe-genius-overlay').remove(); window.recipeGeniusRunning = false;">Close</button>
+                </div>
+            \`;
+            updateContent(html);
+        } catch (error) {
+            console.error('❌ Error showing error:', error);
+            alert('Critical error: ' + error.message);
+        }
+    }
+
+    async function extractRecipe() {
+        try {
+            console.log('🚀 Starting recipe extraction');
+
+            const overlay = createOverlay();
+
+            let authToken;
+            try {
+                authToken = getAuthToken();
+            } catch (error) {
+                showError(error.message);
+                return;
+            }
+
+            const html = document.documentElement.outerHTML;
+            const url = window.location.href;
+            const title = document.title;
+
+            console.log('📊 Data to send:', {
+                url: url,
+                title: title,
+                htmlLength: html.length,
+                apiEndpoint: API_ENDPOINT
+            });
+
+            console.log('🌐 Making fetch request to:', API_ENDPOINT);
+
+            const response = await fetch(API_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': \`Bearer \${authToken}\`
+                },
+                body: JSON.stringify({
+                    html: html,
+                    url: url,
+                    title: title
+                })
+            });
+
+            console.log('📡 Response status:', response.status);
+            console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
+
+            const data = await response.json();
+            console.log('📦 Response data:', data);
+
+            if (response.ok && data.success) {
+                console.log('✅ Recipe extracted successfully!');
+                showSuccess(data);
+            } else {
+                console.error('❌ API Error:', data);
+                showError(data.error || 'Failed to extract recipe from this page');
+            }
+
+        } catch (error) {
+            console.error('💥 Critical error in extractRecipe:', error);
+            console.error('Stack trace:', error.stack);
+            showError('Critical error: ' + error.message + '. Check console for details.');
+        }
+    }
+
+    extractRecipe();
+
+})();`;
+
+        // Display the code
+        document.getElementById('bookmarklet-code').textContent = bookmarkletCode;
+
+        function copyToClipboard() {
+            const codeElement = document.getElementById('bookmarklet-code');
+            const textArea = document.createElement('textarea');
+            textArea.value = codeElement.textContent;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+
+            // Show feedback
+            const button = document.querySelector('.copy-button');
+            const originalText = button.innerHTML;
+            button.innerHTML = '✅ ¡Copiado!';
+            button.style.background = '#28a745';
+
+            setTimeout(() => {
+                button.innerHTML = originalText;
+                button.style.background = '#007bff';
+            }, 2000);
+        }
+    </script>
+</body>
+</html>

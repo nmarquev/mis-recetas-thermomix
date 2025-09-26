@@ -160,11 +160,11 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
           }))
         },
         ingredients: {
-          create: data.ingredients.map(ing => ({
+          create: data.ingredients.map((ing, index) => ({
             name: ing.name,
             amount: ing.amount,
             unit: ing.unit,
-            order: ing.order
+            order: (ing as any).order || index + 1
           }))
         },
         instructions: {
@@ -264,11 +264,11 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
         },
         ingredients: {
           deleteMany: {},
-          create: data.ingredients.map(ing => ({
+          create: data.ingredients.map((ing, index) => ({
             name: ing.name,
             amount: ing.amount,
             unit: ing.unit,
-            order: ing.order
+            order: (ing as any).order || index + 1
           }))
         },
         instructions: {

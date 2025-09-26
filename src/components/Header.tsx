@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Download, User, LogOut } from "lucide-react";
+import { Search, Plus, Download, User, LogOut, Settings } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { EditProfileModal } from "@/components/EditProfileModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,13 +21,14 @@ interface HeaderProps {
   onImportRecipe: () => void;
 }
 
-export const Header = ({ 
-  searchTerm, 
-  onSearchChange, 
-  onAddRecipe, 
-  onImportRecipe 
+export const Header = ({
+  searchTerm,
+  onSearchChange,
+  onAddRecipe,
+  onImportRecipe
 }: HeaderProps) => {
   const { user, logout } = useAuth();
+  const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -46,7 +49,7 @@ export const Header = ({
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-foreground">
-                  Mis Recetas Thermomix
+                  Las recetas de {user?.alias || user?.name || 'Usuario'}
                 </h1>
                 <p className="text-muted-foreground text-sm">
                   Tu colección personal de recetas
@@ -107,6 +110,10 @@ export const Header = ({
                     </div>
                   </div>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setIsEditProfileModalOpen(true)}>
+                    <Settings className="mr-2 h-4 w-4" />
+                    Editar perfil
+                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Cerrar sesión
@@ -117,6 +124,11 @@ export const Header = ({
           </div>
         </div>
       </div>
+
+      <EditProfileModal
+        isOpen={isEditProfileModalOpen}
+        onClose={() => setIsEditProfileModalOpen(false)}
+      />
     </header>
   );
 };
