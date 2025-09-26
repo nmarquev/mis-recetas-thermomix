@@ -211,4 +211,69 @@ export const api = {
       return response.json();
     },
   },
+
+  // DOCX Import endpoints
+  docx: {
+    upload: async (file: File): Promise<any> => {
+      const formData = new FormData();
+      formData.append('docx', file);
+
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/import/docx/upload`, {
+        method: 'POST',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload DOCX file');
+      }
+
+      return response.json();
+    },
+
+    extract: async (fileId: string, startPage: number, endPage: number): Promise<any> => {
+      const response = await authFetch('/import/docx/extract', {
+        method: 'POST',
+        body: JSON.stringify({ fileId, startPage, endPage }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to extract recipes from DOCX');
+      }
+
+      return response.json();
+    },
+
+    preview: async (fileId: string, startPage: number, endPage: number): Promise<any> => {
+      const response = await authFetch('/import/docx/preview', {
+        method: 'POST',
+        body: JSON.stringify({ fileId, startPage, endPage }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to preview DOCX content');
+      }
+
+      return response.json();
+    },
+
+    cleanup: async (): Promise<any> => {
+      const response = await authFetch('/import/docx/cleanup', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to cleanup DOCX files');
+      }
+
+      return response.json();
+    },
+  },
 };

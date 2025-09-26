@@ -887,4 +887,203 @@ ${truncatedHtml}`;
   private cleanRecipeTitle(title: string): string {
     return this.removeEmojis(title).replace(/\s+/g, ' ').trim();
   }
+
+  /**
+   * Extract recipe from direct text content (for DOCX processing)
+   */
+  async extractRecipeFromText(
+    text: string,
+    options: { suggestedTitle?: string; context?: string } = {}
+  ): Promise<RecipeImportResponse> {
+    console.log('\n🚀 STARTING RECIPE EXTRACTION FROM TEXT');
+    console.log('📏 Text length:', text.length, 'characters');
+    console.log('💡 Suggested title:', options.suggestedTitle || 'none');
+    console.log('🏷️ Context:', options.context || 'general');
+
+    try {
+      const prompt = this.buildTextExtractionPrompt(text, options);
+
+      console.log('\n=== 🤖 TEXT EXTRACTION LLM REQUEST START ===');
+      console.log('🎯 Model: gpt-4o-mini');
+      console.log('🌡️ Temperature: 0.1');
+      console.log('📄 Max Tokens: 4000');
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `Eres un extractor de recetas especializado en procesar contenido de documentos Word.
+
+TAREA: Extraer UNA receta completa del texto proporcionado.
+
+REGLAS ESTRICTAS:
+- Extrae datos EXACTAMENTE como aparecen, sin modificaciones
+- Si encuentras múltiples recetas en el texto, extrae solo la PRIMERA completa
+- Cantidades: mantén formato original ("200g", "1 cucharada", "al gusto")
+- Ingredientes: nombres completos sin omitir ninguno
+- Instrucciones: texto original sin cambios, todos los pasos en orden
+
+FORMATO ESPERADO: JSON válido con estructura exacta solicitada.
+
+Si el texto no contiene una receta válida, responde: {"error": true}`
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.1,
+        max_tokens: 4000
+      });
+
+      console.log('\n✅ LLM RESPONSE RECEIVED');
+      console.log('💰 Usage:', completion.usage);
+
+      const responseContent = completion.choices[0]?.message?.content;
+      if (!responseContent) {
+        throw new Error('Empty response from LLM');
+      }
+
+      console.log('\n📋 RAW TEXT EXTRACTION RESPONSE:');
+      console.log('---');
+      console.log(responseContent.substring(0, 1000) + (responseContent.length > 1000 ? '...[truncated]' : ''));
+      console.log('\n=== 🤖 TEXT EXTRACTION LLM REQUEST END ===\n');
+
+      // Parse and validate response
+      console.log('🔄 Parsing JSON response...');
+      let parsedResponse: any;
+      try {
+        parsedResponse = JSON.parse(responseContent);
+      } catch (parseError) {
+        console.error('❌ JSON Parse Error:', parseError);
+        throw new SyntaxError('Invalid JSON response from LLM');
+      }
+
+      console.log('🔍 Parsed response keys:', Object.keys(parsedResponse));
+
+      // Check for error flag
+      if (parsedResponse.error) {
+        console.log('❌ LLM returned error flag - no recipe found in text');
+        throw new Error('No valid recipe found in provided text');
+      }
+
+      console.log('✅ No error flag detected, proceeding with validation...');
+
+      // Validate with schema
+      console.log('🛡️ Validating response with Zod schema...');
+      const validatedData = llmResponseSchema.parse(parsedResponse);
+      console.log('✅ Schema validation passed successfully');
+
+      console.log('📊 Extracted recipe summary:');
+      console.log('  - Title:', validatedData.title);
+      console.log('  - Ingredients count:', validatedData.ingredients.length);
+      console.log('  - Instructions count:', validatedData.instructions.length);
+      console.log('  - Prep time:', validatedData.prepTime, 'minutes');
+      console.log('  - Servings:', validatedData.servings);
+
+      // Clean title
+      const cleanTitle = this.cleanRecipeTitle(validatedData.title);
+
+      return {
+        title: cleanTitle,
+        description: validatedData.description,
+        images: validatedData.images || [], // DOCX typically won't have images
+        ingredients: validatedData.ingredients.map((ing, index) => ({
+          ...ing,
+          order: index + 1
+        })),
+        instructions: validatedData.instructions.sort((a, b) => a.step - b.step),
+        prepTime: validatedData.prepTime,
+        cookTime: validatedData.cookTime,
+        servings: validatedData.servings,
+        difficulty: validatedData.difficulty,
+        recipeType: validatedData.recipeType,
+        tags: validatedData.tags
+      };
+
+    } catch (error: any) {
+      console.log('\n❌ ERROR IN TEXT EXTRACTION');
+      console.log('Error type:', error.constructor.name);
+      console.log('Error message:', error.message);
+
+      if (error instanceof z.ZodError) {
+        console.error('🛡️ Zod validation errors:');
+        error.errors.forEach((err, index) => {
+          console.error(`  ${index + 1}. Path: ${err.path.join('.')} - ${err.message}`);
+        });
+        throw new Error('Invalid recipe data extracted from text');
+      }
+
+      if (error instanceof SyntaxError) {
+        console.error('🔧 JSON parse error details:', error.message);
+        throw new Error('Invalid response format from LLM');
+      }
+
+      console.error('🚨 Unexpected error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Build extraction prompt for direct text content
+   */
+  private buildTextExtractionPrompt(
+    text: string,
+    options: { suggestedTitle?: string; context?: string } = {}
+  ): string {
+    // Truncate text if too long
+    const maxTextLength = 15000; // Smaller limit for text-only content
+    const truncatedText = text.length > maxTextLength
+      ? text.substring(0, maxTextLength) + '\n...[texto truncado]'
+      : text;
+
+    let contextHint = '';
+    if (options.context === 'docx_import') {
+      contextHint = `\n🗒️ CONTEXTO: Este texto proviene de un documento Word (.docx) que puede contener múltiples recetas.
+Si encuentras varias recetas, extrae solo la PRIMERA receta completa que encuentres.`;
+    }
+
+    let titleHint = '';
+    if (options.suggestedTitle) {
+      titleHint = `\n📝 TÍTULO SUGERIDO: "${options.suggestedTitle}" (usa este como referencia, pero extrae el título real del texto)`;
+    }
+
+    return `Extrae UNA receta completa del siguiente texto.
+${contextHint}${titleHint}
+
+📋 INSTRUCCIONES DE EXTRACCIÓN:
+- Busca patrones típicos: título, ingredientes, preparación/instrucciones
+- Extrae cantidades EXACTAS como aparecen ("200g", "1 cucharada", "al gusto")
+- Incluye TODOS los ingredientes mencionados sin omitir ninguno
+- Captura TODOS los pasos de preparación en orden
+- Si hay tiempos mencionados, extráelos exactamente
+- Si hay número de porciones, extráelo
+
+📊 FORMATO JSON REQUERIDO:
+{
+  "title": "Título exacto de la receta extraído del texto",
+  "description": "Descripción breve si está disponible",
+  "images": [],
+  "ingredients": [
+    {"name": "nombre_exacto_ingrediente", "amount": "cantidad_exacta", "unit": "unidad_si_separada"}
+  ],
+  "instructions": [
+    {"step": 1, "description": "primer_paso_completo_exacto"},
+    {"step": 2, "description": "segundo_paso_sin_modificar"}
+  ],
+  "prepTime": tiempo_preparacion_minutos_numero,
+  "cookTime": tiempo_coccion_minutos_numero_o_null,
+  "servings": numero_porciones,
+  "difficulty": "Fácil|Medio|Difícil",
+  "recipeType": "tipo_de_receta_si_mencionado",
+  "tags": ["etiquetas_relevantes"]
+}
+
+⚠️ Si no encuentras una receta válida en el texto, responde: {"error": true}
+
+TEXTO A PROCESAR:
+${truncatedText}`;
+  }
 }

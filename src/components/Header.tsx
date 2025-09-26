@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Download, User, LogOut, Settings } from "lucide-react";
+import { Search, Plus, Download, User, LogOut, Settings, FileText } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { EditProfileModal } from "@/components/EditProfileModal";
+import { DocxImportModal } from "@/components/DocxImportModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,6 +30,7 @@ export const Header = ({
 }: HeaderProps) => {
   const { user, logout } = useAuth();
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
+  const [isDocxImportModalOpen, setIsDocxImportModalOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -81,6 +83,16 @@ export const Header = ({
               </Button>
 
               <Button
+                onClick={() => setIsDocxImportModalOpen(true)}
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="hidden sm:inline">DOCX</span>
+              </Button>
+
+              <Button
                 onClick={onAddRecipe}
                 variant="recipe"
                 size="sm"
@@ -128,6 +140,15 @@ export const Header = ({
       <EditProfileModal
         isOpen={isEditProfileModalOpen}
         onClose={() => setIsEditProfileModalOpen(false)}
+      />
+
+      <DocxImportModal
+        isOpen={isDocxImportModalOpen}
+        onClose={() => setIsDocxImportModalOpen(false)}
+        onRecipeSaved={(recipeId) => {
+          console.log('Recipe saved from DOCX:', recipeId);
+          // Optionally trigger a refresh of recipes list or show success message
+        }}
       />
     </header>
   );

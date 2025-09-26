@@ -12,6 +12,7 @@ import authRoutes from './routes/auth';
 import recipeRoutes from './routes/recipes';
 import importRoutes from './routes/importImproved';
 import importHtmlRoutes from './routes/importHtml';
+import importDocxRoutes from './routes/importDocx';
 import uploadRoutes from './routes/upload';
 
 const app = express();
@@ -77,6 +78,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/recipes', recipeRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/import-html', importHtmlRoutes);
+app.use('/api/import/docx', importDocxRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // Error handling middleware
