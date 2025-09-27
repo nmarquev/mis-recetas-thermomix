@@ -8,6 +8,66 @@ All colors MUST be HSL.
 
 @layer base {
   :root,
+  [data-theme="carrot"] {
+    /* Carrot color system - warm orange palette matching TasteBox */
+    --background: 0 0% 100%;
+    --foreground: 20 50% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 20 50% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 20 50% 15%;
+
+    /* TasteBox Orange primary (#ff6c17 = 25 100% 54%) */
+    --primary: 25 100% 54%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 35 85% 45%;
+
+    /* Darker orange secondary */
+    --secondary: 25 85% 45%;
+    --secondary-foreground: 0 0% 100%;
+
+    /* Light cream muted (#F2EED8 = 50 45% 90%) */
+    --muted: 50 45% 90%;
+    --muted-foreground: 20 40% 35%;
+
+    /* Warm accent */
+    --accent: 35 85% 65%;
+    --accent-foreground: 20 50% 15%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 50 35% 85%;
+    --input: 50 35% 95%;
+    --ring: 25 100% 54%;
+
+    /* Carrot gradient system */
+    --gradient-primary: linear-gradient(135deg, hsl(25 100% 54%), hsl(35 85% 65%), hsl(45 75% 75%));
+    --gradient-warm: linear-gradient(135deg, hsl(50 45% 98%), hsl(50 45% 92%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(50 35% 97%));
+    --gradient-hero: linear-gradient(135deg, hsl(25 100% 54%), hsl(35 85% 65%), hsl(45 75% 75%), hsl(50 65% 85%), hsl(50 45% 90%));
+
+    /* Carrot shadows */
+    --shadow-recipe-card: 0 4px 20px -2px hsl(25 100% 54% / 0.1);
+    --shadow-elegant: 0 10px 40px -10px hsl(25 100% 54% / 0.15);
+
+    /* Smooth transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
   [data-theme="violetas"] {
     /* Purple gradient color system with contrast */
     --background: 0 0% 100%;

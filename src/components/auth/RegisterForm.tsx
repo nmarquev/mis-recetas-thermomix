@@ -71,7 +71,7 @@ export const RegisterForm: React.FC<RegisterFormProps> = ({ onSwitchToLogin }) =
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold">Crear Cuenta</CardTitle>
         <CardDescription>
-          Únete a la comunidad Thermomix
+          Únete a TasteBox
         </CardDescription>
       </CardHeader>
       <CardContent>

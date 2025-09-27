@@ -12,7 +12,6 @@ import { Recipe } from "@/components/RecipeCard";
 export interface RecipeFilters {
   difficulty: string[];
   prepTimeRange: [number, number];
-  cookTimeRange: [number, number];
   recipeTypes: string[];
   tags: string[];
   featured?: boolean;

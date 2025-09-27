@@ -27,7 +27,7 @@ export const Hero = ({ onGetStarted, onViewFeatured }: HeroProps) => {
             </div>
             
             <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold leading-tight shimmer-text">
-              Organiza tus recetas Thermomix como nunca antes
+              Organiza tus recetas como nunca antes
             </h1>
             
             <p className="mt-6 text-xl text-muted-foreground max-w-2xl">

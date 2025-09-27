@@ -140,7 +140,12 @@ export const DocxImportModal = ({ isOpen, onClose, onRecipeSaved }: DocxImportMo
         difficulty: 'Medio' as const,
         recipeType: 'General',
         tags: [],
-        images: []
+        images: state.uploadData?.images?.map((imageUrl, index) => ({
+          url: imageUrl,
+          localPath: undefined,
+          order: index + 1,
+          altText: `Imagen de ${recipe.estimatedData?.title || recipe.title}`
+        })) || []
       };
 
       const savedRecipe = await api.recipes.create(recipeData);

@@ -18,20 +18,43 @@ export class DocxProcessor {
   }
 
   /**
-   * Process DOCX buffer and extract text content
+   * Process DOCX buffer and extract text content with images
    */
   async processDocxBuffer(buffer: Buffer): Promise<DocxProcessedContent> {
     try {
       console.log('📄 Processing DOCX buffer...');
 
-      // Extract text from DOCX using mammoth
-      const result = await mammoth.extractRawText({ buffer });
-      const fullText = result.value;
+      const images: string[] = [];
+
+      // Extract HTML with images converted to base64
+      const htmlResult = await mammoth.convertToHtml({ buffer }, {
+        convertImage: mammoth.images.imgElement(async (image) => {
+          try {
+            console.log('🖼️ Extracting image from DOCX...');
+            const imageBuffer = await image.read();
+            const base64Image = imageBuffer.toString('base64');
+            const mimeType = this.getImageMimeType(imageBuffer);
+            const dataUrl = `data:${mimeType};base64,${base64Image}`;
+
+            // Store image for later use
+            images.push(dataUrl);
+
+            return { src: dataUrl };
+          } catch (error) {
+            console.warn('⚠️ Failed to extract image:', error);
+            return { src: '' };
+          }
+        })
+      });
+
+      // Also extract raw text for text-based processing
+      const textResult = await mammoth.extractRawText({ buffer });
+      const fullText = textResult.value;
 
       console.log(`📏 Extracted text length: ${fullText.length} characters`);
+      console.log(`🖼️ Extracted ${images.length} images from DOCX`);
 
       // Split into pages (approximate - DOCX doesn't have strict page breaks)
-      // We'll use common page break indicators and chunk by reasonable size
       const pages = this.splitIntoPages(fullText);
 
       console.log(`📑 Split into ${pages.length} approximate pages`);
@@ -39,12 +62,29 @@ export class DocxProcessor {
       return {
         fullText,
         pages,
-        totalPages: pages.length
+        totalPages: pages.length,
+        images,
+        html: htmlResult.value
       };
     } catch (error) {
       console.error('❌ Error processing DOCX:', error);
       throw new Error('Failed to process DOCX file');
     }
+  }
+
+  /**
+   * Detect image MIME type from buffer
+   */
+  private getImageMimeType(buffer: Buffer): string {
+    const header = buffer.toString('hex', 0, 4);
+
+    if (header.startsWith('ffd8ff')) return 'image/jpeg';
+    if (header.startsWith('89504e47')) return 'image/png';
+    if (header.startsWith('47494638')) return 'image/gif';
+    if (header.startsWith('52494646')) return 'image/webp';
+
+    // Default to JPEG
+    return 'image/jpeg';
   }
 
   /**
@@ -112,75 +152,100 @@ export class DocxProcessor {
   }
 
   /**
-   * Detect individual recipes in text content
+   * Detect individual recipes in text content using LLM processing
    */
-  detectRecipes(text: string): RecipeDetectionResult {
-    console.log('🔍 Detecting individual recipes in text...');
+  async detectRecipes(text: string): Promise<RecipeDetectionResult> {
+    console.log('🤖 Using LLM to detect and extract recipes from document content...');
+    console.log(`📄 Processing ${text.length} characters of text`);
 
-    // Common patterns that indicate recipe boundaries
-    const recipeIndicators = [
-      /^\s*\d+[\.)]\s*.{1,100}$/gm, // Numbered recipes: "1. Recipe Name"
-      /^[A-ZÁÉÍÓÚÑÜ][A-ZÁÉÍÓÚÑÜa-záéíóúñü\s]{2,80}$/gm, // Title case lines (likely recipe titles)
-      /^RECETA[\s\d]*[:|-]?.{0,50}$/gmi, // Lines starting with "RECETA"
-      /^(INGREDIENTES?|PREPARACI[ÓO]N|INSTRUCCI[ÓO]N|ELABORACI[ÓO]N):/gmi, // Section headers
-    ];
+    try {
+      // Import the LLM service
+      const { LLMServiceImproved } = await import('./llmServiceImproved');
+      const llmService = new LLMServiceImproved();
 
-    const recipes: { id: string; title: string; startIndex: number; endIndex: number; content: string; }[] = [];
-    const lines = text.split('\n');
+      // Use LLM to extract all recipes from the document text
+      const llmResult = await llmService.extractMultipleRecipesFromDocument(text);
 
-    let currentRecipe: { title: string; startIndex: number; lines: string[]; } | null = null;
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      if (line.length === 0) continue;
-
-      // Check if this line looks like a recipe title
-      const isTitle = this.isLikelyRecipeTitle(line, i, lines);
-
-      if (isTitle && line.length > 3) {
-        // Save previous recipe if exists
-        if (currentRecipe) {
-          const content = currentRecipe.lines.join('\n');
-          recipes.push({
-            id: randomUUID(),
-            title: currentRecipe.title,
-            startIndex: currentRecipe.startIndex,
-            endIndex: i - 1,
-            content: content
-          });
-        }
-
-        // Start new recipe
-        currentRecipe = {
-          title: this.cleanTitle(line),
-          startIndex: i,
-          lines: [line]
-        };
-      } else if (currentRecipe) {
-        // Add line to current recipe
-        currentRecipe.lines.push(line);
+      if (!llmResult.success) {
+        console.error('❌ LLM extraction failed:', llmResult.error);
+        return { recipes: [], totalDetected: 0 };
       }
-    }
 
-    // Don't forget the last recipe
-    if (currentRecipe) {
-      const content = currentRecipe.lines.join('\n');
-      recipes.push({
+      // Convert LLM results to our expected format
+      const recipes = llmResult.recipes.map(recipe => ({
         id: randomUUID(),
-        title: currentRecipe.title,
-        startIndex: currentRecipe.startIndex,
-        endIndex: lines.length - 1,
-        content: content
+        title: recipe.title,
+        startIndex: 0, // LLM doesn't provide line positions
+        endIndex: 0,   // but that's ok, we have the full content
+        content: this.formatRecipeContent(recipe),
+        estimatedData: recipe // Store the structured data for preview
+      }));
+
+      console.log(`🎯 LLM detected ${recipes.length} recipes:`);
+      recipes.forEach((recipe, index) => {
+        console.log(`  ${index + 1}. "${recipe.title}" (${recipe.content.length} chars)`);
       });
+
+      return {
+        recipes,
+        totalDetected: recipes.length
+      };
+
+    } catch (error) {
+      console.error('❌ Error in LLM recipe detection:', error);
+      // Fallback: return the whole text as a single recipe for manual review
+      return {
+        recipes: [{
+          id: randomUUID(),
+          title: 'Documento completo (procesamiento manual requerido)',
+          startIndex: 0,
+          endIndex: 0,
+          content: text
+        }],
+        totalDetected: 1
+      };
+    }
+  }
+
+  /**
+   * Format the LLM-extracted recipe data back into text format for storage
+   */
+  private formatRecipeContent(recipe: any): string {
+    const parts = [];
+
+    parts.push(recipe.title);
+    parts.push('');
+
+    if (recipe.description) {
+      parts.push('DESCRIPCIÓN:');
+      parts.push(recipe.description);
+      parts.push('');
     }
 
-    console.log(`🎯 Detected ${recipes.length} potential recipes`);
+    if (recipe.prepTime || recipe.cookTime || recipe.servings) {
+      if (recipe.prepTime) parts.push(`TIEMPO DE PREPARACIÓN: ${recipe.prepTime} minutos`);
+      if (recipe.cookTime) parts.push(`TIEMPO DE COCCIÓN: ${recipe.cookTime} minutos`);
+      if (recipe.servings) parts.push(`PORCIONES: ${recipe.servings}`);
+      parts.push('');
+    }
 
-    return {
-      recipes,
-      totalDetected: recipes.length
-    };
+    if (recipe.ingredients && recipe.ingredients.length > 0) {
+      parts.push('INGREDIENTES:');
+      recipe.ingredients.forEach(ingredient => {
+        parts.push(`• ${ingredient}`);
+      });
+      parts.push('');
+    }
+
+    if (recipe.instructions && recipe.instructions.length > 0) {
+      parts.push('PREPARACIÓN:');
+      recipe.instructions.forEach((instruction, index) => {
+        parts.push(`${index + 1}. ${instruction}`);
+      });
+      parts.push('');
+    }
+
+    return parts.join('\n');
   }
 
   /**
@@ -280,6 +345,7 @@ export class DocxProcessor {
 
     return patterns.some(pattern => pattern.test(line));
   }
+
 
   /**
    * Clean recipe title

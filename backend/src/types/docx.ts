@@ -43,6 +43,8 @@ export interface DocxProcessedContent {
   fullText: string;
   pages: string[];
   totalPages: number;
+  images?: string[]; // Base64 data URLs of extracted images
+  html?: string; // HTML version with embedded images
 }
 
 export interface RecipeDetectionResult {

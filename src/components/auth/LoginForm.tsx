@@ -50,7 +50,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
       <CardHeader className="text-center">
         <CardTitle className="text-2xl font-bold">Iniciar Sesión</CardTitle>
         <CardDescription>
-          Accede a tus recetas Thermomix
+          Accede a tus recetas favoritas
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -108,7 +108,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSwitchToRegister }) => {
           
           <div className="mt-4 p-3 bg-muted rounded-lg">
             <p className="text-xs text-muted-foreground mb-2">Demo:</p>
-            <p className="text-xs">Email: demo@thermomix.com</p>
+            <p className="text-xs">Email: demo@tastebox.com</p>
             <p className="text-xs">Contraseña: demo123</p>
           </div>
         </div>

@@ -5,6 +5,7 @@ import { Search, Plus, Download, User, LogOut, Settings, FileText } from "lucide
 import { useAuth } from "@/contexts/AuthContext";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { DocxImportModal } from "@/components/DocxImportModal";
+import { PdfImportModal } from "@/components/pdf/PdfImportModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 interface HeaderProps {
@@ -20,17 +21,20 @@ interface HeaderProps {
   onSearchChange: (value: string) => void;
   onAddRecipe: () => void;
   onImportRecipe: () => void;
+  onRecipeAdded?: () => void;
 }
 
 export const Header = ({
   searchTerm,
   onSearchChange,
   onAddRecipe,
-  onImportRecipe
+  onImportRecipe,
+  onRecipeAdded
 }: HeaderProps) => {
   const { user, logout } = useAuth();
   const [isEditProfileModalOpen, setIsEditProfileModalOpen] = useState(false);
   const [isDocxImportModalOpen, setIsDocxImportModalOpen] = useState(false);
+  const [isPdfImportModalOpen, setIsPdfImportModalOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -45,18 +49,12 @@ export const Header = ({
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="py-6">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-lg">🥄</span>
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">
-                  Las recetas de {user?.alias || user?.name || 'Usuario'}
-                </h1>
-                <p className="text-muted-foreground text-sm">
-                  Tu colección personal de recetas
-                </p>
-              </div>
+            <div className="flex items-center">
+              <img
+                src="/tastebox.png"
+                alt="TasteBox"
+                className="h-16 object-contain"
+              />
             </div>
             
             <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -72,25 +70,32 @@ export const Header = ({
 
               <ThemeSwitcher />
 
-              <Button
-                onClick={onImportRecipe}
-                variant="secondary"
-                size="sm"
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">Importar</span>
-              </Button>
-
-              <Button
-                onClick={() => setIsDocxImportModalOpen(true)}
-                variant="outline"
-                size="sm"
-                className="flex items-center gap-2 border-blue-200 text-blue-700 hover:bg-blue-50"
-              >
-                <FileText className="h-4 w-4" />
-                <span className="hidden sm:inline">DOCX</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span className="hidden sm:inline">Importar</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={onImportRecipe}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Online
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsDocxImportModalOpen(true)}>
+                    <FileText className="mr-2 h-4 w-4 text-blue-600" />
+                    DOCX
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsPdfImportModalOpen(true)}>
+                    <FileText className="mr-2 h-4 w-4 text-purple-600" />
+                    PDF
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               <Button
                 onClick={onAddRecipe}
@@ -106,6 +111,10 @@ export const Header = ({
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
+                      <AvatarImage
+                        src={user?.profilePhoto ? `http://localhost:3002${user.profilePhoto}` : undefined}
+                        alt={user?.name || 'Usuario'}
+                      />
                       <AvatarFallback className="bg-primary text-primary-foreground text-xs">
                         {getUserInitials(user?.name || 'U')}
                       </AvatarFallback>
@@ -147,7 +156,16 @@ export const Header = ({
         onClose={() => setIsDocxImportModalOpen(false)}
         onRecipeSaved={(recipeId) => {
           console.log('Recipe saved from DOCX:', recipeId);
-          // Optionally trigger a refresh of recipes list or show success message
+          onRecipeAdded?.(); // Refresh the recipes list
+        }}
+      />
+
+      <PdfImportModal
+        isOpen={isPdfImportModalOpen}
+        onClose={() => setIsPdfImportModalOpen(false)}
+        onRecipeSaved={(recipeId) => {
+          console.log('Recipe saved from PDF:', recipeId);
+          onRecipeAdded?.(); // Refresh the recipes list
         }}
       />
     </header>

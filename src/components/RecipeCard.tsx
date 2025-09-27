@@ -1,11 +1,12 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, ChefHat, Edit, Trash2, MoreVertical, Heart } from "lucide-react";
+import { Clock, Users, ChefHat, Edit, Trash2, MoreVertical, Heart, Share, Printer, Download, Play, ExternalLink } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Recipe } from "@/types/recipe";
 import { resolveImageUrl } from "@/utils/api";
 import { isThermomixRecipe } from "@/utils/recipeUtils";
+import { getSiteName, isValidUrl } from "@/utils/siteUtils";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -73,8 +74,7 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite,
               <Heart className={`h-4 w-4 ${recipe.featured ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
             </Button>
           )}
-          {(onEdit || onDelete) && (
-            <DropdownMenu>
+          <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="secondary"
@@ -85,6 +85,28 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite,
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {recipe.sourceUrl && isValidUrl(recipe.sourceUrl) && (
+                  <DropdownMenuItem onClick={() => window.open(recipe.sourceUrl, '_blank')}>
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Ver en {getSiteName(recipe.sourceUrl)}
+                  </DropdownMenuItem>
+                )}
+                <DropdownMenuItem onClick={() => {}}>
+                  <Share className="h-4 w-4 mr-2" />
+                  Compartir
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {}}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  Imprimir
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {}}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Descargar
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => {}}>
+                  <Play className="h-4 w-4 mr-2" />
+                  Reproducir
+                </DropdownMenuItem>
                 {onEdit && (
                   <DropdownMenuItem onClick={() => onEdit(recipe)}>
                     <Edit className="h-4 w-4 mr-2" />
@@ -102,7 +124,6 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite,
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
-          )}
           <Badge className={getDifficultyColor(recipe.difficulty)}>
             {recipe.difficulty}
           </Badge>
@@ -117,11 +138,11 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite,
       </div>
       
       <CardContent className="p-4 space-y-3">
-        <div>
-          <h3 className="font-semibold text-lg text-foreground line-clamp-2 group-hover:text-primary transition-colors">
+        <div className="min-h-[5.5rem]">
+          <h3 className="font-semibold text-lg text-foreground line-clamp-2 group-hover:text-primary transition-colors h-14 leading-7">
             {recipe.title}
           </h3>
-          <p className="text-muted-foreground text-sm line-clamp-2 mt-1">
+          <p className="text-muted-foreground text-sm line-clamp-2 mt-1 h-10 leading-5">
             {recipe.description || 'Sin descripción'}
           </p>
         </div>

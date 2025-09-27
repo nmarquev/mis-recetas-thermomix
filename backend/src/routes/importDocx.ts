@@ -107,7 +107,8 @@ router.post('/upload', authenticateToken, upload.single('docx'), async (req: Aut
       success: true,
       fileId,
       totalPages: processedContent.totalPages,
-      preview
+      preview,
+      images: processedContent.images || []
     };
 
     console.log(`✅ DOCX processed successfully: ${processedContent.totalPages} pages, fileId: ${fileId}`);
@@ -148,56 +149,20 @@ router.post('/extract', authenticateToken, async (req: AuthRequest, res) => {
     // Extract text from specified pages
     const extractedText = await docxProcessor.extractPageRange(fileId, startPage, endPage);
 
-    // Detect individual recipes in the text
-    const detectionResult = docxProcessor.detectRecipes(extractedText);
+    console.log(`📄 Extracted ${extractedText.length} characters from pages ${startPage}-${endPage}`);
 
-    console.log(`🎯 Detected ${detectionResult.totalDetected} recipes`);
+    // Use LLM to detect and extract all recipes in one go
+    const detectionResult = await docxProcessor.detectRecipes(extractedText);
 
-    // Process each detected recipe with LLM
-    const processedRecipes: DocxExtractedRecipe[] = [];
+    console.log(`🎯 LLM detected ${detectionResult.totalDetected} recipes`);
 
-    for (let i = 0; i < detectionResult.recipes.length; i++) {
-      const recipe = detectionResult.recipes[i];
-
-      try {
-        console.log(`🤖 Processing recipe ${i + 1}/${detectionResult.recipes.length}: ${recipe.title}`);
-
-        // Use LLM to extract structured data from raw recipe text
-        const llmResult = await llmService.extractRecipeFromText(recipe.content, {
-          suggestedTitle: recipe.title,
-          context: 'docx_import'
-        });
-
-        processedRecipes.push({
-          id: recipe.id,
-          title: recipe.title,
-          content: recipe.content,
-          estimatedData: {
-            title: llmResult.title,
-            description: llmResult.description,
-            ingredients: llmResult.ingredients.map(ing => `${ing.amount} ${ing.unit || ''} ${ing.name}`.trim()),
-            instructions: llmResult.instructions.map(inst => inst.description),
-            prepTime: llmResult.prepTime,
-            cookTime: llmResult.cookTime,
-            servings: llmResult.servings
-          }
-        });
-
-      } catch (llmError) {
-        console.warn(`⚠️ LLM processing failed for recipe ${i + 1}, using basic data:`, llmError);
-
-        // Fallback to basic extracted data
-        processedRecipes.push({
-          id: recipe.id,
-          title: recipe.title,
-          content: recipe.content,
-          estimatedData: {
-            title: recipe.title,
-            description: 'Descripción extraída de documento DOCX'
-          }
-        });
-      }
-    }
+    // Convert LLM results to our expected format
+    const processedRecipes: DocxExtractedRecipe[] = detectionResult.recipes.map(recipe => ({
+      id: recipe.id,
+      title: recipe.title,
+      content: recipe.content,
+      estimatedData: recipe.estimatedData
+    }));
 
     const response: DocxExtractResponse = {
       success: true,

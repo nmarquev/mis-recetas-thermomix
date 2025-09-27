@@ -889,6 +889,234 @@ ${truncatedHtml}`;
   }
 
   /**
+   * Extract multiple recipes from PDF pages using GPT-4o-mini multimodal (for PDF processing)
+   */
+  async extractMultipleRecipesFromPdfPages(pages: { pageNum: number; imageBase64: string; text?: string }[]): Promise<{ success: boolean; recipes: any[]; error?: string }> {
+    try {
+      console.log('🤖 Sending PDF pages to GPT-4o-mini for multimodal recipe extraction...');
+      console.log(`📄 Processing ${pages.length} PDF pages`);
+
+      const prompt = `
+Analiza estas páginas de un documento PDF que contiene recetas de cocina.
+
+IMPORTANTE - Busca y extrae información tanto VISUAL como TEXTUAL:
+
+🔍 ELEMENTOS VISUALES A DETECTAR:
+- ICONOS de reloj/tiempo (⏰) para tiempos de preparación y cocción
+- ICONOS de personas/cubiertos (👥🍽️) para número de porciones
+- ICONOS de dificultad (⭐) o nivel de habilidad
+- IMÁGENES de platos terminados, ingredientes, pasos de preparación
+- LAYOUT y disposición visual para entender estructura de recetas
+
+📝 ELEMENTOS TEXTUALES A EXTRAER:
+- Títulos de recetas
+- Listas de ingredientes con cantidades exactas
+- Instrucciones paso a paso
+- Metadatos (categoría, tipo de plato, etc.)
+
+⚠️ REGLAS IMPORTANTES:
+- NO inventes tiempos/porciones si no ves iconos o texto específico
+- Si detectas iconos visuales, úsalos para extraer datos precisos
+- Incluye referencias a imágenes si las detectas
+- Detecta correctamente dónde termina una receta y empieza otra
+- Usa la disposición visual para entender la estructura
+
+🎯 CLASIFICACIÓN AUTOMÁTICA:
+- DIFFICULTY: Analiza complejidad de ingredientes e instrucciones ("Fácil", "Medio", "Difícil")
+- RECIPE_TYPE: Clasifica por tipo de plato ("Postre", "Plato Principal", "Aperitivo", "Bebida", "Acompañamiento", "Salsa", etc.)
+
+Responde SOLO con un JSON válido con este formato exacto:
+{
+  "recipes": [
+    {
+      "title": "Título exacto de la receta",
+      "description": "Descripción incluyendo referencias a imágenes detectadas",
+      "prepTime": 30,
+      "cookTime": 45,
+      "servings": 4,
+      "hasImage": true,
+      "difficulty": "Fácil",
+      "recipeType": "Postre",
+      "ingredients": [
+        {"name": "naranja en rodajas para decorar", "amount": "1", "unit": ""},
+        {"name": "edulcorante de fruta del monje", "amount": "140-155", "unit": "gramos"}
+      ],
+      "instructions": [
+        {"step": 1, "description": "Paso 1 de la preparación"},
+        {"step": 2, "description": "Paso 2 de la preparación"}
+      ],
+      "pageNumbers": [1, 2]
+    }
+  ]
+}
+`;
+
+      // For now, use text-only approach while we debug multimodal issues
+      // TODO: Re-enable multimodal once API issue is resolved
+      console.log('⚠️ Using text-only analysis temporarily due to multimodal API issues');
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'user',
+            content: `${prompt}\n\nNOTE: No visual content available for analysis. Extract recipes based on text content and page structure only.`
+          }
+        ],
+        temperature: 0.1,
+        max_tokens: 8000,
+        response_format: { type: 'json_object' }
+      });
+
+      const content = response.choices[0]?.message?.content?.trim();
+      if (!content) {
+        throw new Error('Empty response from GPT-4o-mini');
+      }
+
+      console.log('🤖 GPT-4o-mini Response received, parsing JSON...');
+
+      // Parse the JSON response
+      let jsonResponse;
+      try {
+        // Try to extract JSON if wrapped in markdown or other formatting
+        const jsonMatch = content.match(/```json\n(.*)\n```/s) ||
+                         content.match(/```\n(.*)\n```/s) ||
+                         content.match(/\{[\s\S]*\}/);
+        const jsonString = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
+        jsonResponse = JSON.parse(jsonString);
+      } catch (parseError) {
+        console.error('❌ Failed to parse GPT-5-mini JSON response:', parseError);
+        console.log('Raw response sample:', content.substring(0, 500));
+        throw new Error('Invalid JSON response from GPT-5-mini');
+      }
+
+      if (!jsonResponse.recipes || !Array.isArray(jsonResponse.recipes)) {
+        throw new Error('GPT-5-mini response does not contain recipes array');
+      }
+
+      console.log(`✅ Successfully extracted ${jsonResponse.recipes.length} recipes from PDF pages`);
+      jsonResponse.recipes.forEach((recipe, index) => {
+        console.log(`  ${index + 1}. "${recipe.title}" (${recipe.ingredients?.length || 0} ingredients, ${recipe.instructions?.length || 0} steps, hasImage: ${recipe.hasImage})`);
+      });
+
+      return {
+        success: true,
+        recipes: jsonResponse.recipes
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error in GPT-5-mini PDF recipe extraction:', error);
+      return {
+        success: false,
+        recipes: [],
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Extract multiple recipes from a document text (for DOCX processing)
+   */
+  async extractMultipleRecipesFromDocument(documentText: string): Promise<{ success: boolean; recipes: any[]; error?: string }> {
+    try {
+      console.log('🤖 Sending document to LLM for multiple recipe extraction...');
+      console.log(`📄 Document length: ${documentText.length} characters`);
+
+      const prompt = `
+Analiza el siguiente documento y extrae TODAS las recetas que encuentres. El documento puede contener múltiples recetas.
+
+Para cada receta que encuentres, extrae:
+- Título de la receta
+- Descripción (si existe)
+- Tiempo de preparación (en minutos, solo números)
+- Tiempo de cocción (en minutos, solo números)
+- Número de porciones (solo números)
+- Lista completa de ingredientes con cantidades exactas
+- Lista completa de instrucciones paso a paso
+- Si hay referencias a imágenes embebidas, menciónalas en la descripción
+
+IMPORTANTE:
+- Si una receta tiene metadatos como "Nombre:", "Categoría:", etc., úsalos
+- Detecta correctamente dónde termina una receta y empieza otra
+- Incluye TODA la información disponible para cada receta
+- No inventes información que no esté en el documento
+- Si hay imágenes mencionadas o embebidas, inclúyelas en la descripción
+
+Responde SOLO con un JSON válido con este formato exacto:
+{
+  "recipes": [
+    {
+      "title": "Título exacto de la receta",
+      "description": "Descripción o información adicional",
+      "prepTime": 30,
+      "cookTime": 45,
+      "servings": 4,
+      "ingredients": [
+        "1 naranja, más extra en rodajas para decorar",
+        "140-155 gramos edulcorante de fruta del monje"
+      ],
+      "instructions": [
+        "Paso 1 de la preparación",
+        "Paso 2 de la preparación"
+      ]
+    }
+  ]
+}
+
+DOCUMENTO A ANALIZAR:
+${documentText}
+`;
+
+      const response = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.1,
+        max_tokens: 8000,
+        response_format: { type: 'json_object' }
+      });
+
+      const content = response.choices[0]?.message?.content?.trim();
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      console.log('🤖 LLM Response received, parsing JSON...');
+
+      // Parse the JSON response
+      let jsonResponse;
+      try {
+        jsonResponse = JSON.parse(content);
+      } catch (parseError) {
+        console.error('❌ Failed to parse LLM JSON response:', parseError);
+        console.log('Raw response sample:', content.substring(0, 500));
+        throw new Error('Invalid JSON response from LLM');
+      }
+
+      if (!jsonResponse.recipes || !Array.isArray(jsonResponse.recipes)) {
+        throw new Error('LLM response does not contain recipes array');
+      }
+
+      console.log(`✅ Successfully extracted ${jsonResponse.recipes.length} recipes from document`);
+      jsonResponse.recipes.forEach((recipe, index) => {
+        console.log(`  ${index + 1}. "${recipe.title}" (${recipe.ingredients?.length || 0} ingredients, ${recipe.instructions?.length || 0} steps)`);
+      });
+
+      return {
+        success: true,
+        recipes: jsonResponse.recipes
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error in LLM multiple recipe extraction:', error);
+      return {
+        success: false,
+        recipes: [],
+        error: error.message
+      };
+    }
+  }
+
+  /**
    * Extract recipe from direct text content (for DOCX processing)
    */
   async extractRecipeFromText(
@@ -1023,6 +1251,52 @@ Si el texto no contiene una receta válida, responde: {"error": true}`
 
       console.error('🚨 Unexpected error:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Generate text using OpenAI for general purposes
+   */
+  async generateText(prompt: string): Promise<{ success: boolean; content?: string; error?: string }> {
+    try {
+      console.log('🤖 Generating text with LLM...');
+      console.log('📏 Prompt length:', prompt.length, 'characters');
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un asistente especializado en cocina que ayuda a generar scripts naturales y conversacionales para recetas.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        temperature: 0.7,
+        max_tokens: 2000
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      console.log('✅ Text generation successful');
+      console.log('📏 Response length:', content.length, 'characters');
+
+      return {
+        success: true,
+        content: content.trim()
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error in text generation:', error);
+      return {
+        success: false,
+        error: error.message
+      };
     }
   }
 

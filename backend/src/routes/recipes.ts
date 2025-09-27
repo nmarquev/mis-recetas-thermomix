@@ -35,7 +35,49 @@ const createRecipeSchema = z.object({
     temperature: z.string().optional(),
     speed: z.string().optional()
   })),
-  tags: z.array(z.string())
+  tags: z.array(z.string()),
+  featured: z.boolean().optional(),
+  locution: z.string().optional()
+});
+
+// Update recipe schema (more flexible for updates)
+const updateRecipeSchema = z.object({
+  title: z.string().min(1),
+  description: z.string().optional(),
+  prepTime: z.number().min(1),
+  cookTime: z.number().optional(),
+  servings: z.number().min(1),
+  difficulty: z.enum(['Fácil', 'Medio', 'Difícil']),
+  recipeType: z.string().optional(),
+  sourceUrl: z.string().url().optional(),
+  images: z.array(z.object({
+    url: z.string(),
+    localPath: z.string().optional(),
+    order: z.number(),
+    altText: z.string().optional()
+  })).max(3),
+  ingredients: z.array(z.object({
+    name: z.string().min(1),
+    amount: z.string().min(1),
+    unit: z.string().optional(),
+    order: z.number()
+  })),
+  instructions: z.array(z.object({
+    step: z.number(),
+    description: z.string().min(1),
+    time: z.string().optional(),
+    temperature: z.string().optional(),
+    speed: z.string().optional()
+  })),
+  tags: z.array(z.union([
+    z.string(),
+    z.object({
+      tag: z.string(),
+      tagId: z.string().optional()
+    })
+  ])),
+  featured: z.boolean().optional(),
+  locution: z.string().optional()
 });
 
 // Get all recipes for user
@@ -137,6 +179,10 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
 // Create recipe
 router.post('/', authenticateToken, async (req: AuthRequest, res) => {
   try {
+    console.log('🔍 DEBUG: Incoming recipe data:');
+    console.log('📝 Ingredients type and sample:', typeof req.body.ingredients, Array.isArray(req.body.ingredients), req.body.ingredients?.slice(0, 2));
+    console.log('📝 Instructions type and sample:', typeof req.body.instructions, Array.isArray(req.body.instructions), req.body.instructions?.slice(0, 2));
+
     const data = createRecipeSchema.parse(req.body);
 
     // Create recipe with related data
@@ -150,6 +196,8 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         difficulty: data.difficulty,
         recipeType: data.recipeType,
         sourceUrl: data.sourceUrl,
+        featured: data.featured,
+        locution: data.locution,
         userId: req.user!.id,
         images: {
           create: data.images.map(img => ({
@@ -226,7 +274,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
 // Update recipe
 router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const data = createRecipeSchema.parse(req.body);
+    const data = updateRecipeSchema.parse(req.body);
 
     // Check if recipe belongs to user
     const existingRecipe = await prisma.recipe.findFirst({
@@ -252,6 +300,8 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
         difficulty: data.difficulty,
         recipeType: data.recipeType,
         sourceUrl: data.sourceUrl,
+        featured: data.featured,
+        locution: data.locution,
         // For simplicity, we'll replace all related data
         images: {
           deleteMany: {},
@@ -283,14 +333,17 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
         },
         tags: {
           deleteMany: {},
-          create: data.tags.map(tagName => ({
-            tag: {
-              connectOrCreate: {
-                where: { name: tagName },
-                create: { name: tagName }
+          create: data.tags.map(tagData => {
+            const tagName = typeof tagData === 'string' ? tagData : tagData.tag;
+            return {
+              tag: {
+                connectOrCreate: {
+                  where: { name: tagName },
+                  create: { name: tagName }
+                }
               }
-            }
-          }))
+            };
+          })
         }
       },
       include: {

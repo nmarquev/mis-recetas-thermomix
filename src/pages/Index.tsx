@@ -25,7 +25,11 @@ const Index = () => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
-  const [showHero, setShowHero] = useState(true);
+  const [showHero, setShowHero] = useState(() => {
+    // Check if hero has been dismissed before
+    const heroDismissed = localStorage.getItem('hero-dismissed');
+    return heroDismissed !== 'true';
+  });
   const [showImportModal, setShowImportModal] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -37,7 +41,6 @@ const Index = () => {
   const [filters, setFilters] = useState<RecipeFilters>({
     difficulty: [],
     prepTimeRange: [0, 180],
-    cookTimeRange: [0, 120],
     recipeTypes: [],
     tags: [],
     featured: undefined,
@@ -67,10 +70,6 @@ const Index = () => {
     const matchesPrepTime = recipe.prepTime >= (filters.prepTimeRange?.[0] ?? 0) &&
       recipe.prepTime <= (filters.prepTimeRange?.[1] ?? 180);
 
-    // Cook time filter
-    const cookTime = recipe.cookTime || 0;
-    const matchesCookTime = cookTime >= (filters.cookTimeRange?.[0] ?? 0) &&
-      cookTime <= (filters.cookTimeRange?.[1] ?? 120);
 
     // Recipe type filter
     const matchesRecipeType = filters.recipeTypes.length === 0 ||
@@ -91,7 +90,7 @@ const Index = () => {
     // Thermomix filter
     const matchesThermomix = !filters.thermomixOnly || isThermomixRecipe(recipe);
 
-    return matchesSearch && matchesDifficulty && matchesPrepTime && matchesCookTime && matchesRecipeType && matchesTags && matchesFeatured && matchesThermomix;
+    return matchesSearch && matchesDifficulty && matchesPrepTime && matchesRecipeType && matchesTags && matchesFeatured && matchesThermomix;
   }).sort((a, b) => {
     // Sort alphabetically by title
     return a.title.localeCompare(b.title, 'es', { sensitivity: 'base' });
@@ -100,27 +99,28 @@ const Index = () => {
   // Get displayed recipes (for pagination)
   const filteredRecipes = allFilteredRecipes.slice(0, displayedCount);
 
+  // Load recipes function (extracted for reuse)
+  const loadRecipes = async () => {
+    if (!user) return;
+
+    try {
+      setIsLoadingRecipes(true);
+      const userRecipes = await api.recipes.getAll();
+      setRecipes(userRecipes);
+    } catch (error) {
+      console.error('Error loading recipes:', error);
+      toast({
+        title: "Error al cargar recetas",
+        description: "No se pudieron cargar las recetas",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingRecipes(false);
+    }
+  };
+
   // Load recipes when user is available
   useEffect(() => {
-    const loadRecipes = async () => {
-      if (!user) return;
-
-      try {
-        setIsLoadingRecipes(true);
-        const userRecipes = await api.recipes.getAll();
-        setRecipes(userRecipes);
-      } catch (error) {
-        console.error('Error loading recipes:', error);
-        toast({
-          title: "Error al cargar recetas",
-          description: "No se pudieron cargar las recetas",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoadingRecipes(false);
-      }
-    };
-
     loadRecipes();
   }, [user, toast]);
 
@@ -185,7 +185,6 @@ const Index = () => {
     setFilters(prev => ({
       difficulty: prev.difficulty || [],
       prepTimeRange: prev.prepTimeRange || [0, 180],
-      cookTimeRange: prev.cookTimeRange || [0, 120],
       recipeTypes: prev.recipeTypes || [],
       tags: prev.tags || [],
       featured: undefined,
@@ -212,7 +211,6 @@ const Index = () => {
     setFilters(prev => ({
       difficulty: prev.difficulty || [],
       prepTimeRange: prev.prepTimeRange || [0, 180],
-      cookTimeRange: prev.cookTimeRange || [0, 120],
       recipeTypes: prev.recipeTypes || [],
       tags: prev.tags || [],
       featured: undefined,
@@ -283,6 +281,14 @@ const Index = () => {
       }));
       console.log('🧹 Instructions cleaned:', cleanedInstructions.length, 'instructions');
 
+      // Clean tags to handle both string and object formats
+      const cleanedTags = recipe.tags.map(tag => {
+        if (typeof tag === 'string') {
+          return { tag, tagId: tag }; // Convert string to object format
+        }
+        return tag; // Already an object
+      });
+
       console.log('🚀 Calling API to update recipe...');
       const updatedRecipe = await api.recipes.update(recipe.id, {
         title: recipe.title,
@@ -294,7 +300,7 @@ const Index = () => {
         images: recipe.images,
         ingredients: recipe.ingredients,
         instructions: cleanedInstructions,
-        tags: recipe.tags,
+        tags: cleanedTags,
         sourceUrl: recipe.sourceUrl,
         recipeType: recipe.recipeType,
         featured: newFeaturedState
@@ -338,15 +344,16 @@ const Index = () => {
 
   const handleGetStarted = () => {
     setShowHero(false);
+    localStorage.setItem('hero-dismissed', 'true');
   };
 
   const handleViewFeatured = () => {
     setShowHero(false);
+    localStorage.setItem('hero-dismissed', 'true');
     // Filter to show only featured recipes
     setFilters(prev => ({
       difficulty: prev.difficulty || [],
       prepTimeRange: prev.prepTimeRange || [0, 180],
-      cookTimeRange: prev.cookTimeRange || [0, 120],
       recipeTypes: prev.recipeTypes || [],
       tags: prev.tags || [],
       featured: true,
@@ -362,7 +369,6 @@ const Index = () => {
     setFilters({
       difficulty: [],
       prepTimeRange: [0, 180],
-      cookTimeRange: [0, 120],
       recipeTypes: [],
       tags: [],
       featured: undefined,
@@ -399,11 +405,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header 
+      <Header
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         onAddRecipe={handleAddRecipe}
         onImportRecipe={handleImportRecipe}
+        onRecipeAdded={loadRecipes}
       />
       
       {showHero && (
@@ -414,7 +421,7 @@ const Index = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h2 className="text-2xl font-bold text-foreground">
-              {searchTerm ? `Resultados para "${searchTerm}"` : `Las recetas de ${user?.alias || user?.name || 'Usuario'}`}
+              {searchTerm ? `Resultados para "${searchTerm}"` : `Recetas de ${user?.alias || user?.name || 'Usuario'}`}
             </h2>
             <p className="text-muted-foreground mt-1">
               Mostrando {filteredRecipes.length} de {allFilteredRecipes.length} receta{allFilteredRecipes.length !== 1 ? 's' : ''}
@@ -511,23 +518,48 @@ const Index = () => {
                   </div>
                 </div>
 
-                {/* Prep Time Filter */}
+                {/* Recipe Type Filter */}
                 <div>
-                  <Label className="text-sm font-medium mb-3 block">
-                    Tiempo de preparación: {filters.prepTimeRange?.[0] ?? 0}-{filters.prepTimeRange?.[1] ?? 180} min
-                  </Label>
-                  <div className="px-2">
-                    {/* Note: You might need to import Slider and other components */}
+                  <Label className="text-sm font-medium mb-3 block">Tipo de Receta</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {Array.from(new Set(
+                      recipes.map(recipe => recipe.recipeType).filter(type => type && type.length > 0)
+                    )).sort().map((recipeType) => (
+                      <Button
+                        key={recipeType}
+                        variant={filters.recipeTypes.includes(recipeType!) ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => {
+                          const newTypes = filters.recipeTypes.includes(recipeType!)
+                            ? filters.recipeTypes.filter(t => t !== recipeType)
+                            : [...filters.recipeTypes, recipeType!];
+                          handleFiltersChange({ ...filters, recipeTypes: newTypes });
+                        }}
+                        className="h-7 text-xs"
+                      >
+                        {recipeType}
+                      </Button>
+                    ))}
                   </div>
                 </div>
 
-                {/* Servings Filter */}
+                {/* Favorites Filter */}
                 <div>
-                  <Label className="text-sm font-medium mb-3 block">
-                    Tiempo de cocción: {filters.cookTimeRange?.[0] ?? 0}-{filters.cookTimeRange?.[1] ?? 120} min
-                  </Label>
-                  <div className="px-2">
-                    {/* Note: You might need to import Slider and other components */}
+                  <Label className="text-sm font-medium mb-3 block">Favoritos</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant={filters.featured === true ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => {
+                        handleFiltersChange({
+                          ...filters,
+                          featured: filters.featured === true ? undefined : true
+                        });
+                      }}
+                      className="h-8"
+                    >
+                      ⭐ Solo Favoritos
+                    </Button>
                   </div>
                 </div>
 
@@ -647,6 +679,15 @@ const Index = () => {
         recipe={recipeToDelete}
         onRecipeDeleted={handleRecipeDeleted}
       />
+
+      {/* Footer */}
+      <footer className="bg-muted/30 border-t border-border/50 py-4 mt-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <p className="text-center text-sm text-muted-foreground">
+            © Copyright 2025 - TasteBox
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };

@@ -41,6 +41,7 @@ export interface Recipe {
   sourceUrl?: string;
   recipeType?: string;
   featured?: boolean;
+  locution?: string;
   createdAt: Date;
   updatedAt: Date;
 }

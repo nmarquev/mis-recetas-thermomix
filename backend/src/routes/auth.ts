@@ -71,6 +71,7 @@ router.post('/register', async (req, res) => {
         email: true,
         name: true,
         alias: true,
+        profilePhoto: true,
         createdAt: true
       }
     });
@@ -130,6 +131,7 @@ router.post('/login', async (req, res) => {
         email: user.email,
         name: user.name,
         alias: user.alias,
+        profilePhoto: user.profilePhoto,
         createdAt: user.createdAt
       },
       token
@@ -203,6 +205,7 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res) => {
         email: true,
         name: true,
         alias: true,
+        profilePhoto: true,
         createdAt: true,
         updatedAt: true
       }
@@ -237,6 +240,7 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
         email: true,
         name: true,
         alias: true,
+        profilePhoto: true,
         createdAt: true,
         updatedAt: true
       }

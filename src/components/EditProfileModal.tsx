@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { User, Mail, Tag, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
+import { ProfilePhotoUpload } from "./ProfilePhotoUpload";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -34,6 +35,13 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
     setFormData(prev => ({ ...prev, [field]: value }));
     setError(null);
     setSuccess(null);
+  };
+
+  const handlePhotoUpdate = async (photoUrl: string) => {
+    // Refresh user data to update the profile photo in the UI
+    if (refreshUser) {
+      await refreshUser();
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -143,6 +151,15 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
               <AlertDescription className="text-green-600">{success}</AlertDescription>
             </Alert>
           )}
+
+          {/* Profile Photo */}
+          <div className="space-y-2">
+            <Label>Foto de perfil</Label>
+            <ProfilePhotoUpload
+              currentPhotoUrl={user?.profilePhoto ? `http://localhost:3002${user.profilePhoto}` : undefined}
+              onPhotoUpdate={handlePhotoUpdate}
+            />
+          </div>
 
           {/* Email */}
           <div className="space-y-2">

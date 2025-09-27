@@ -13,7 +13,10 @@ import recipeRoutes from './routes/recipes';
 import importRoutes from './routes/importImproved';
 import importHtmlRoutes from './routes/importHtml';
 import importDocxRoutes from './routes/importDocx';
+import importPdfRoutes from './routes/importPdf';
 import uploadRoutes from './routes/upload';
+import llmRoutes from './routes/llm';
+import profilePhotoRoutes from './routes/profilePhoto';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -65,6 +68,7 @@ app.use('/uploads', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
   res.header('Access-Control-Allow-Methods', 'GET');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
 }, express.static(path.join(__dirname, '../uploads')));
 
@@ -79,7 +83,10 @@ app.use('/api/recipes', recipeRoutes);
 app.use('/api/import', importRoutes);
 app.use('/api/import-html', importHtmlRoutes);
 app.use('/api/import/docx', importDocxRoutes);
+app.use('/api/import/pdf', importPdfRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/llm', llmRoutes);
+app.use('/api/upload', profilePhotoRoutes);
 
 // Error handling middleware
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

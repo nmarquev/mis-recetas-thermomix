@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-export type Theme = 'violetas' | 'tierra' | 'pop' | 'frutilla';
+export type Theme = 'carrot' | 'violetas' | 'tierra' | 'pop' | 'frutilla';
 
 interface ThemeContextType {
   theme: Theme;
@@ -24,7 +24,7 @@ interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [theme, setTheme] = useState<Theme>(() => {
     const saved = localStorage.getItem('theme');
-    return (saved as Theme) || 'violetas';
+    return (saved as Theme) || 'carrot';
   });
 
   useEffect(() => {

@@ -13,12 +13,14 @@ import {
   FileText,
   CheckCircle,
   Eye,
-  EyeOff
+  EyeOff,
+  Image,
+  MapPin
 } from "lucide-react";
-import { DocxExtractedRecipe } from "@/types/docx";
+import { PdfExtractedRecipe } from "@/types/pdf";
 
-interface RecipeReviewerProps {
-  recipe: DocxExtractedRecipe;
+interface PdfRecipeReviewerProps {
+  recipe: PdfExtractedRecipe;
   recipeIndex: number;
   totalRecipes: number;
   isSaved: boolean;
@@ -27,7 +29,7 @@ interface RecipeReviewerProps {
   loading: boolean;
 }
 
-export const RecipeReviewer = ({
+export const PdfRecipeReviewer = ({
   recipe,
   recipeIndex,
   totalRecipes,
@@ -35,8 +37,9 @@ export const RecipeReviewer = ({
   onSave,
   onSkip,
   loading
-}: RecipeReviewerProps) => {
+}: PdfRecipeReviewerProps) => {
   const [showRawContent, setShowRawContent] = useState(false);
+  const [showThumbnail, setShowThumbnail] = useState(true);
 
   const estimatedData = recipe.estimatedData;
 
@@ -47,11 +50,11 @@ export const RecipeReviewer = ({
           Revisar Receta {recipeIndex + 1} de {totalRecipes}
         </h3>
         <p className="text-muted-foreground">
-          Revisa los datos extraídos y guarda la receta si está correcta
+          Revisa los datos extraídos visualmente por GPT-5-mini y guarda la receta si está correcta
         </p>
       </div>
 
-      {/* Recipe Preview */}
+      {/* Recipe Preview with Visual Elements */}
       <Card className={isSaved ? "border-green-200 bg-green-50" : ""}>
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -59,15 +62,54 @@ export const RecipeReviewer = ({
               <ChefHat className="h-5 w-5" />
               <span>{estimatedData?.title || recipe.title}</span>
             </CardTitle>
-            {isSaved && (
-              <Badge variant="outline" className="border-green-500 text-green-700">
-                <CheckCircle className="h-3 w-3 mr-1" />
-                Guardada
-              </Badge>
-            )}
+            <div className="flex items-center space-x-2">
+              {recipe.hasImage && (
+                <Badge variant="outline" className="border-purple-500 text-purple-700">
+                  <Image className="h-3 w-3 mr-1" />
+                  Con Imagen
+                </Badge>
+              )}
+              {recipe.pageNumbers && recipe.pageNumbers.length > 0 && (
+                <Badge variant="outline" className="border-blue-500 text-blue-700">
+                  <MapPin className="h-3 w-3 mr-1" />
+                  Págs. {recipe.pageNumbers.join(', ')}
+                </Badge>
+              )}
+              {isSaved && (
+                <Badge variant="outline" className="border-green-500 text-green-700">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Guardada
+                </Badge>
+              )}
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
+          {/* Thumbnail Preview */}
+          {recipe.thumbnailUrl && showThumbnail && (
+            <div className="border rounded-lg p-3 bg-gray-50">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                  Página de Origen
+                </h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowThumbnail(!showThumbnail)}
+                >
+                  {showThumbnail ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </Button>
+              </div>
+              <div className="flex justify-center">
+                <img
+                  src={recipe.thumbnailUrl}
+                  alt={`Página con receta: ${recipe.title}`}
+                  className="max-w-sm max-h-48 object-contain border rounded shadow-sm"
+                />
+              </div>
+            </div>
+          )}
+
           {/* Basic Info */}
           {estimatedData?.description && (
             <div>
@@ -78,24 +120,27 @@ export const RecipeReviewer = ({
             </div>
           )}
 
-          {/* Recipe Meta */}
+          {/* Recipe Meta with Visual Indicators */}
           <div className="flex flex-wrap gap-4 text-sm">
             {estimatedData?.prepTime && (
-              <div className="flex items-center space-x-1">
-                <Clock className="h-4 w-4 text-blue-500" />
+              <div className="flex items-center space-x-1 bg-orange-50 px-3 py-1 rounded-full">
+                <Clock className="h-4 w-4 text-orange-500" />
                 <span>{estimatedData.prepTime} min preparación</span>
+                <span className="text-xs text-orange-600">(🔍 detectado visualmente)</span>
               </div>
             )}
             {estimatedData?.cookTime && (
-              <div className="flex items-center space-x-1">
-                <Clock className="h-4 w-4 text-orange-500" />
+              <div className="flex items-center space-x-1 bg-red-50 px-3 py-1 rounded-full">
+                <Clock className="h-4 w-4 text-red-500" />
                 <span>{estimatedData.cookTime} min cocción</span>
+                <span className="text-xs text-red-600">(🔍 detectado visualmente)</span>
               </div>
             )}
             {estimatedData?.servings && (
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-1 bg-green-50 px-3 py-1 rounded-full">
                 <Users className="h-4 w-4 text-green-500" />
                 <span>{estimatedData.servings} porciones</span>
+                <span className="text-xs text-green-600">(🔍 detectado visualmente)</span>
               </div>
             )}
           </div>
@@ -105,6 +150,7 @@ export const RecipeReviewer = ({
             <div>
               <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide mb-3">
                 Ingredientes ({estimatedData.ingredients.length})
+                <span className="text-xs normal-case ml-2 text-blue-600">✨ Extraídos con IA visual</span>
               </h4>
               <div className="space-y-1">
                 {estimatedData.ingredients.map((ingredient, index) => (
@@ -122,6 +168,7 @@ export const RecipeReviewer = ({
             <div>
               <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide mb-3">
                 Instrucciones ({estimatedData.instructions.length} pasos)
+                <span className="text-xs normal-case ml-2 text-purple-600">✨ Extraídas con IA visual</span>
               </h4>
               <div className="space-y-3">
                 {estimatedData.instructions.map((instruction, index) => (
@@ -145,13 +192,13 @@ export const RecipeReviewer = ({
               className="text-muted-foreground"
             >
               {showRawContent ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
-              {showRawContent ? 'Ocultar contenido original' : 'Ver contenido original'}
+              {showRawContent ? 'Ocultar contenido procesado' : 'Ver contenido procesado'}
             </Button>
 
             {showRawContent && (
               <div className="mt-3">
                 <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide mb-2">
-                  Contenido Original del Documento
+                  Contenido Procesado del PDF
                 </h4>
                 <Textarea
                   value={recipe.content}
@@ -164,16 +211,16 @@ export const RecipeReviewer = ({
         </CardContent>
       </Card>
 
-      {/* Quality Indicators */}
+      {/* Enhanced Quality Indicators */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center space-x-2 text-base">
             <FileText className="h-4 w-4" />
-            <span>Calidad de Extracción</span>
+            <span>Calidad de Extracción Visual</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
             <div>
               <div className="text-lg font-semibold text-green-600">
                 {estimatedData?.title ? '✓' : '⚠️'}
@@ -194,20 +241,27 @@ export const RecipeReviewer = ({
             </div>
             <div>
               <div className="text-lg font-semibold text-green-600">
-                {estimatedData?.prepTime ? '✓' : '⚠️'}
+                {(estimatedData?.prepTime || estimatedData?.cookTime) ? '🔍✓' : '⚠️'}
               </div>
-              <div className="text-xs text-muted-foreground">Tiempos</div>
+              <div className="text-xs text-muted-foreground">Tiempos Visuales</div>
+            </div>
+            <div>
+              <div className="text-lg font-semibold text-purple-600">
+                {recipe.hasImage ? '🖼️✓' : '❌'}
+              </div>
+              <div className="text-xs text-muted-foreground">Imágenes</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Warnings */}
+      {/* Enhanced Warnings */}
       {(!estimatedData?.ingredients || estimatedData.ingredients.length === 0) && (
         <Alert>
           <AlertDescription>
             <strong>Advertencia:</strong> No se detectaron ingredientes en esta receta.
-            Revisa el contenido original y considera editarla manualmente después de guardarla.
+            Esto puede indicar que la página no contiene una receta completa o que el formato
+            no fue reconocido por el análisis visual. Revisa el contenido procesado.
           </AlertDescription>
         </Alert>
       )}
@@ -216,7 +270,17 @@ export const RecipeReviewer = ({
         <Alert>
           <AlertDescription>
             <strong>Advertencia:</strong> No se detectaron instrucciones en esta receta.
-            Revisa el contenido original y considera editarla manualmente después de guardarla.
+            Revisa el contenido procesado y considera editarla manualmente después de guardarla.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {(!estimatedData?.prepTime && !estimatedData?.cookTime && !estimatedData?.servings) && (
+        <Alert>
+          <AlertDescription>
+            <strong>Información:</strong> No se detectaron iconos visuales de tiempo o porciones.
+            Si el documento contiene estos iconos, pueden estar en un formato que la IA no reconoció.
+            Los tiempos y porciones se pueden agregar manualmente después.
           </AlertDescription>
         </Alert>
       )}
@@ -263,6 +327,9 @@ export const RecipeReviewer = ({
         Receta {recipeIndex + 1} de {totalRecipes}
         {recipeIndex < totalRecipes - 1 && (
           <span> • {totalRecipes - recipeIndex - 1} restantes</span>
+        )}
+        {recipe.pageNumbers && recipe.pageNumbers.length > 0 && (
+          <span> • Página{recipe.pageNumbers.length > 1 ? 's' : ''} {recipe.pageNumbers.join(', ')} del PDF</span>
         )}
       </div>
     </div>

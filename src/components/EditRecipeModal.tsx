@@ -28,6 +28,7 @@ interface RecipeFormData {
   servings: number;
   difficulty: "Fácil" | "Medio" | "Difícil";
   recipeType: string;
+  locution: string;
   tags: string[];
   ingredients: Array<{
     name: string;
@@ -77,6 +78,7 @@ export const EditRecipeModal = ({ isOpen, onClose, recipe, onRecipeUpdated }: Ed
         servings: recipe.servings,
         difficulty: recipe.difficulty,
         recipeType: recipe.recipeType || '',
+        locution: recipe.locution || '',
         tags: recipe.tags?.map(tag => typeof tag === 'string' ? tag : tag.tag || tag.name || '') || [],
         ingredients: recipe.ingredients?.map(ing => ({
           name: ing.name,
@@ -159,6 +161,7 @@ export const EditRecipeModal = ({ isOpen, onClose, recipe, onRecipeUpdated }: Ed
         servings: data.servings,
         difficulty: data.difficulty,
         recipeType: data.recipeType,
+        locution: data.locution,
         tags: data.tags,
         ingredients: data.ingredients.map((ing, index) => ({
           name: ing.name,
@@ -299,6 +302,21 @@ export const EditRecipeModal = ({ isOpen, onClose, recipe, onRecipeUpdated }: Ed
                 placeholder="ej: Pasta, Postre, Sopa"
               />
             </div>
+          </div>
+
+          {/* Locution */}
+          <div>
+            <Label htmlFor="locution">Locución (Script para TTS)</Label>
+            <Textarea
+              id="locution"
+              {...register('locution')}
+              placeholder="Script de chef explicando la receta para reproducir con voz..."
+              rows={4}
+              className="resize-none"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Texto que se reproducirá cuando se use la función de voz. Si está vacío, se generará automáticamente.
+            </p>
           </div>
 
           {/* Tags */}

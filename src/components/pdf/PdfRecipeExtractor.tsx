@@ -1,31 +1,32 @@
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
-import { ChefHat, FileText, Zap, ArrowRight } from "lucide-react";
-import { DocxUploadResponse, PageRange } from "@/types/docx";
+import React from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Progress } from '@/components/ui/progress';
+import { ChefHat, FileText, Zap, ArrowRight, Eye, Image, Clock, Users } from 'lucide-react';
+import { PdfUploadResponse, PageRange } from '@/types/pdf';
 
-interface RecipeExtractorProps {
-  uploadData: DocxUploadResponse;
+interface PdfRecipeExtractorProps {
+  uploadData: PdfUploadResponse;
   selectedPages: PageRange;
   onExtract: () => void;
   loading: boolean;
 }
 
-export const RecipeExtractor = ({
+export const PdfRecipeExtractor = ({
   uploadData,
   selectedPages,
   onExtract,
   loading
-}: RecipeExtractorProps) => {
+}: PdfRecipeExtractorProps) => {
   const pagesCount = selectedPages.end - selectedPages.start + 1;
 
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
-        <h3 className="text-lg font-semibold">Listo para extraer recetas</h3>
+        <h3 className="text-lg font-semibold">Extraer recetas del PDF</h3>
         <p className="text-muted-foreground">
-          Procesaremos las páginas {selectedPages.start} a {selectedPages.end} para detectar y extraer recetas automáticamente
+          Procesaremos las páginas {selectedPages.start} a {selectedPages.end} para detectar recetas automáticamente
         </p>
       </div>
 
@@ -64,9 +65,9 @@ export const RecipeExtractor = ({
               <div className="flex items-center space-x-3">
                 <ChefHat className="h-6 w-6 text-blue-600 animate-pulse" />
                 <div className="flex-1">
-                  <h4 className="font-medium">Procesando recetas...</h4>
+                  <h4 className="font-medium">Procesando páginas...</h4>
                   <p className="text-sm text-muted-foreground">
-                    Esto puede tomar unos momentos dependiendo del número de páginas
+                    Analizando {pagesCount} páginas para extraer recetas
                   </p>
                 </div>
               </div>
@@ -80,8 +81,17 @@ export const RecipeExtractor = ({
       {pagesCount > 15 && !loading && (
         <Alert>
           <AlertDescription>
-            <strong>Nota:</strong> Procesarás {pagesCount} páginas, lo que puede tomar varios minutos.
-            Para un procesamiento más rápido, considera dividir el documento en rangos más pequeños.
+            <strong>Procesamiento extenso:</strong> {pagesCount} páginas pueden tomar varios minutos.
+            Considera procesar en secciones más pequeñas para mayor rapidez.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {pagesCount > 25 && !loading && (
+        <Alert variant="destructive">
+          <AlertDescription>
+            <strong>Advertencia:</strong> Más de 25 páginas puede resultar en timeouts.
+            Se recomienda dividir en rangos de 10-15 páginas.
           </AlertDescription>
         </Alert>
       )}
@@ -108,6 +118,7 @@ export const RecipeExtractor = ({
           )}
         </Button>
       </div>
+
     </div>
   );
 };

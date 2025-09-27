@@ -6,6 +6,7 @@ interface User {
   email: string;
   name: string;
   alias?: string;
+  profilePhoto?: string;
 }
 
 interface AuthContextType {
@@ -51,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const response = await api.auth.login(email, password);
-      const userData = { id: response.user.id, email: response.user.email, name: response.user.name, alias: response.user.alias };
+      const userData = { id: response.user.id, email: response.user.email, name: response.user.name, alias: response.user.alias, profilePhoto: response.user.profilePhoto };
       setUser(userData);
       localStorage.setItem('thermomix_user', JSON.stringify(userData));
       setIsLoading(false);
@@ -68,7 +69,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     try {
       const response = await api.auth.register(email, password, name, alias);
-      const userData = { id: response.user.id, email: response.user.email, name: response.user.name, alias: response.user.alias };
+      const userData = { id: response.user.id, email: response.user.email, name: response.user.name, alias: response.user.alias, profilePhoto: response.user.profilePhoto };
       setUser(userData);
       localStorage.setItem('thermomix_user', JSON.stringify(userData));
       setIsLoading(false);

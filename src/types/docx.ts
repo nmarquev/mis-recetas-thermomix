@@ -3,6 +3,7 @@ export interface DocxUploadResponse {
   fileId: string;
   totalPages: number;
   preview: string;
+  images?: string[]; // Base64 data URLs of extracted images
   error?: string;
 }
 

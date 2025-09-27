@@ -1,5 +1,10 @@
 import { Recipe, ImportRecipeResponse } from '@/types/recipe';
 import { getApiBaseUrl } from '@/utils/api';
+import {
+  PdfUploadResponse,
+  PdfExtractResponse,
+  PdfPreviewResponse
+} from '@/types/pdf';
 
 const API_BASE_URL = getApiBaseUrl();
 
@@ -275,5 +280,127 @@ export const api = {
 
       return response.json();
     },
+  },
+
+  // PDF Import endpoints
+  pdf: {
+    upload: async (file: File): Promise<PdfUploadResponse> => {
+      const formData = new FormData();
+      formData.append('pdf', file);
+
+      const token = getAuthToken();
+      const response = await fetch(`${API_BASE_URL}/import/pdf/upload`, {
+        method: 'POST',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to upload PDF file');
+      }
+
+      return response.json();
+    },
+
+    extract: async (fileId: string, startPage: number, endPage: number): Promise<PdfExtractResponse> => {
+      const response = await authFetch('/import/pdf/extract', {
+        method: 'POST',
+        body: JSON.stringify({ fileId, startPage, endPage }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to extract recipes from PDF');
+      }
+
+      return response.json();
+    },
+
+    preview: async (fileId: string, startPage?: number, endPage?: number): Promise<PdfPreviewResponse> => {
+      const response = await authFetch('/import/pdf/preview', {
+        method: 'POST',
+        body: JSON.stringify({ fileId, startPage, endPage }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate PDF preview');
+      }
+
+      return response.json();
+    },
+
+    status: async (fileId: string): Promise<any> => {
+      const response = await authFetch(`/import/pdf/status/${fileId}`, {
+        method: 'GET',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to get PDF status');
+      }
+
+      return response.json();
+    },
+
+    cleanup: async (fileId: string): Promise<any> => {
+      const response = await authFetch(`/import/pdf/cleanup/${fileId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to cleanup PDF files');
+      }
+
+      return response.json();
+    },
+  },
+
+  // LLM endpoints
+  llm: {
+    generateScript: async (prompt: string): Promise<{ success: boolean; script?: string; error?: string }> => {
+      const response = await authFetch('/llm/generate-script', {
+        method: 'POST',
+        body: JSON.stringify({ prompt }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate script');
+      }
+
+      return response.json();
+    },
+  },
+
+  // Generic API methods
+  post: async (endpoint: string, data: any) => {
+    return authFetch(endpoint, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  put: async (endpoint: string, data: any) => {
+    return authFetch(endpoint, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  get: async (endpoint: string) => {
+    return authFetch(endpoint, {
+      method: 'GET',
+    });
+  },
+
+  delete: async (endpoint: string) => {
+    return authFetch(endpoint, {
+      method: 'DELETE',
+    });
   },
 };

@@ -2,22 +2,34 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Recipe } from "@/types/recipe";
-import { Clock, Users, ChefHat, Share, Printer, Download, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { Clock, Users, ChefHat, Share, Printer, Download, ChevronLeft, ChevronRight, ExternalLink, Play, Pause } from "lucide-react";
+import { useState, useEffect } from "react";
 import { resolveImageUrl } from "@/utils/api";
 import { getSiteName, isValidUrl } from "@/utils/siteUtils";
 import { isThermomixRecipe, hasThermomixSettings, getThermomixSettingsDisplay } from "@/utils/recipeUtils";
+import { api } from "@/services/api";
+import { useToast } from "@/hooks/use-toast";
 
 interface RecipeModalProps {
   recipe: Recipe | null;
   isOpen: boolean;
   onClose: () => void;
+  onRecipeUpdate?: (recipe: Recipe) => void;
 }
 
-export const RecipeModal = ({ recipe, isOpen, onClose }: RecipeModalProps) => {
+export const RecipeModal = ({ recipe, isOpen, onClose, onRecipeUpdate }: RecipeModalProps) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isGeneratingScript, setIsGeneratingScript] = useState(false);
+  const [localRecipe, setLocalRecipe] = useState<Recipe | null>(recipe);
+  const { toast } = useToast();
 
-  if (!recipe) return null;
+  // Update local recipe when prop changes
+  useEffect(() => {
+    setLocalRecipe(recipe);
+  }, [recipe]);
+
+  if (!localRecipe) return null;
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
@@ -42,32 +54,147 @@ export const RecipeModal = ({ recipe, isOpen, onClose }: RecipeModalProps) => {
     }
   };
 
-  const currentImage = recipe.images?.[currentImageIndex];
+  const generateTTSScript = async (recipe: Recipe): Promise<string> => {
+    try {
+      setIsGeneratingScript(true);
+
+      const prompt = `Genera un script para explicar esta receta de cocina en un video. El script debe ser natural, entusiasta y fácil de seguir. NO te presentes ni menciones tu nombre, simplemente explica la receta directamente. Los datos de la receta son:
+
+Título: ${recipe.title}
+Descripción: ${recipe.description || 'Sin descripción'}
+Tiempo de preparación: ${recipe.prepTime} minutos
+Tiempo de cocción: ${recipe.cookTime || 'No especificado'} minutos
+Porciones: ${recipe.servings}
+Dificultad: ${recipe.difficulty}
+
+Ingredientes:
+${recipe.ingredients.map(ing => `- ${ing.amount} ${ing.unit || ''} ${ing.name}`).join('\n')}
+
+Instrucciones:
+${recipe.instructions.map((inst, idx) => `${idx + 1}. ${inst.description}`).join('\n')}
+
+Genera un script natural y conversacional explicando la receta paso a paso. Comienza directamente con la receta sin presentarte. Que sea fluido y agradable de escuchar.`;
+
+      const response = await api.llm.generateScript(prompt);
+
+      if (response && response.success && response.script) {
+        return response.script;
+      } else {
+        throw new Error('Failed to generate script');
+      }
+    } catch (error) {
+      console.error('Error generating TTS script:', error);
+      toast({
+        title: "Error",
+        description: "No se pudo generar el script automáticamente",
+        variant: "destructive",
+      });
+      return '';
+    } finally {
+      setIsGeneratingScript(false);
+    }
+  };
+
+  const speakText = async (text: string) => {
+    if (!text.trim()) {
+      toast({
+        title: "Sin contenido",
+        description: "No hay texto para reproducir",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-AR';
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+
+      utterance.onstart = () => setIsPlaying(true);
+      utterance.onend = () => setIsPlaying(false);
+      utterance.onerror = () => {
+        setIsPlaying(false);
+        toast({
+          title: "Error de reproducción",
+          description: "No se pudo reproducir el audio",
+          variant: "destructive",
+        });
+      };
+
+      window.speechSynthesis.speak(utterance);
+    } else {
+      toast({
+        title: "No compatible",
+        description: "TTS no es soportado en este navegador",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handlePlayTTS = async () => {
+    if (isPlaying) {
+      window.speechSynthesis.cancel();
+      setIsPlaying(false);
+      return;
+    }
+
+    let scriptText = localRecipe.locution;
+
+    if (!scriptText?.trim()) {
+      scriptText = await generateTTSScript(localRecipe);
+
+      if (scriptText) {
+        try {
+          const updatedRecipe = { ...localRecipe, locution: scriptText };
+          await api.recipes.update(localRecipe.id, updatedRecipe);
+
+          // Update local state to prevent regeneration
+          setLocalRecipe(updatedRecipe);
+
+          // Notify parent if callback provided
+          if (onRecipeUpdate) {
+            onRecipeUpdate(updatedRecipe);
+          }
+        } catch (error) {
+          console.error('Error saving generated script:', error);
+        }
+      }
+    }
+
+    if (scriptText) {
+      await speakText(scriptText);
+    }
+  };
+
+  const currentImage = localRecipe.images?.[currentImageIndex];
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl">{recipe.title}</DialogTitle>
+          <DialogTitle className="text-2xl">{localRecipe.title}</DialogTitle>
         </DialogHeader>
-        
+
         <div className="space-y-6">
           {currentImage ? (
             <div className="relative">
               <img
                 src={resolveImageUrl(currentImage.url)}
-                alt={currentImage.altText || recipe.title}
+                alt={currentImage.altText || localRecipe.title}
                 className="w-full h-64 object-cover rounded-lg"
                 crossOrigin="anonymous"
                 loading="lazy"
               />
               <div className="absolute top-4 right-4">
-                <Badge className={getDifficultyColor(recipe.difficulty)}>
-                  {recipe.difficulty}
+                <Badge className={getDifficultyColor(localRecipe.difficulty)}>
+                  {localRecipe.difficulty}
                 </Badge>
               </div>
 
-              {(recipe.images?.length ?? 0) > 1 && (
+              {(localRecipe.images?.length ?? 0) > 1 && (
                 <>
                   <button
                     onClick={prevImage}
@@ -120,23 +247,46 @@ export const RecipeModal = ({ recipe, isOpen, onClose }: RecipeModalProps) => {
                   variant="default"
                   size="sm"
                   onClick={() => window.open(recipe.sourceUrl, '_blank')}
-                  className="mr-2"
+                  title={`Ver en ${getSiteName(recipe.sourceUrl)}`}
                 >
-                  <ExternalLink className="h-4 w-4 mr-1" />
-                  Ver en {getSiteName(recipe.sourceUrl)}
+                  <ExternalLink className="h-4 w-4" />
                 </Button>
               )}
-              <Button variant="outline" size="sm">
-                <Share className="h-4 w-4 mr-1" />
-                Compartir
+              <Button
+                variant="outline"
+                size="sm"
+                title="Compartir"
+              >
+                <Share className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm">
-                <Printer className="h-4 w-4 mr-1" />
-                Imprimir
+              <Button
+                variant="outline"
+                size="sm"
+                title="Imprimir"
+              >
+                <Printer className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-1" />
-                Descargar
+              <Button
+                variant="outline"
+                size="sm"
+                title="Descargar"
+              >
+                <Download className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePlayTTS}
+                disabled={isGeneratingScript}
+                title={isPlaying ? "Pausar audio" : "Reproducir receta"}
+              >
+                {isGeneratingScript ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                ) : isPlaying ? (
+                  <Pause className="h-4 w-4" />
+                ) : (
+                  <Play className="h-4 w-4" />
+                )}
               </Button>
             </div>
           </div>
