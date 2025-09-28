@@ -156,7 +156,14 @@ export const PdfRecipeReviewer = ({
                 {estimatedData.ingredients.map((ingredient, index) => (
                   <div key={index} className="flex items-start space-x-2 text-sm">
                     <span className="text-muted-foreground mt-1">•</span>
-                    <span>{ingredient}</span>
+                    <span>
+                      {typeof ingredient === 'string'
+                        ? ingredient
+                        : ingredient.amount && ingredient.name
+                          ? `${ingredient.amount} ${ingredient.unit || ''} ${ingredient.name}`.trim()
+                          : JSON.stringify(ingredient)
+                      }
+                    </span>
                   </div>
                 ))}
               </div>
@@ -176,7 +183,7 @@ export const PdfRecipeReviewer = ({
                     <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-xs font-semibold text-primary">
                       {index + 1}
                     </div>
-                    <span>{instruction}</span>
+                    <span>{typeof instruction === 'string' ? instruction : instruction.description || JSON.stringify(instruction)}</span>
                   </div>
                 ))}
               </div>

@@ -9,12 +9,94 @@
 ## Estado del proyecto
 - ✅ Funcionalidad base de recetas completada
 - ✅ Importación desde URLs (Instagram, web) funcionando
-- ✅ Importación DOCX básica implementada
-- 🔄 Próximo: Importación PDF con soporte visual
+- ✅ Importación DOCX implementada con validación mejorada
+- ✅ Importación PDF implementada con procesamiento multimodal
+- ✅ Sistema TTS (Text-to-Speech) integrado
+- ✅ Configuración de voz personalizable
+- ✅ Edición de perfiles de usuario
+- ✅ Manejo de imágenes optimizado
+- ✅ Validación Zod robusta para null/undefined
+- ✅ UI/UX mejorada con themed components
 
 ---
 
-## 📋 PLAN: IMPORTACIÓN DE RECETAS EN PDF
+## 🎯 **FUNCIONALIDADES IMPLEMENTADAS**
+
+### **1. Sistema de Text-to-Speech (TTS)**
+- ✅ Generación automática de scripts narrativos con LLM
+- ✅ Configuración de voz personalizable (velocidad, tono, volumen, idioma)
+- ✅ Reproducción directa desde tarjetas de recetas
+- ✅ Reproducción completa desde modal de recetas
+- ✅ Soporte para múltiples idiomas (ES-AR, ES-ES, ES-MX, EN-US, EN-GB)
+- ✅ Detección automática de voces del sistema
+- ✅ Almacenamiento de configuración en localStorage
+
+**Archivos clave:**
+- `src/hooks/useVoiceSettings.ts` - Hook para configuración de voz
+- `src/components/VoiceSettingsModal.tsx` - Modal de configuración
+- `src/pages/Index.tsx` - Implementación de TTS en cards
+- `src/components/RecipeModal.tsx` - TTS completo en modal
+
+### **2. Importación de Documentos (PDF/DOCX)**
+- ✅ Soporte para archivos PDF con procesamiento multimodal GPT-4o-mini
+- ✅ Soporte para archivos DOCX con extracción avanzada
+- ✅ Conversión de páginas PDF a imágenes para análisis visual
+- ✅ Detección automática de iconos de tiempo y porciones
+- ✅ Generación automática de etiquetas relevantes (3-4 tags)
+- ✅ Clasificación automática de dificultad y tipo de receta
+- ✅ Sistema de preview con thumbnails de páginas
+- ✅ Wizard de 4 pasos para importación PDF
+- ✅ Validación robusta con Zod schemas
+
+**Archivos clave:**
+- `backend/src/services/pdfProcessor.ts` - Procesamiento PDF
+- `backend/src/services/llmServiceImproved.ts` - Análisis con LLM
+- `backend/src/routes/importPdf.ts` - API endpoints PDF
+- `src/components/pdf/PdfImportModal.tsx` - UI principal PDF
+- `backend/src/routes/recipes.ts` - Validación Zod mejorada
+
+### **3. Gestión de Usuarios y Perfiles**
+- ✅ Sistema de autenticación completo
+- ✅ Edición de perfiles de usuario
+- ✅ Carga de fotos de perfil con preview
+- ✅ Validación de formatos de imagen
+- ✅ Almacenamiento seguro en base de datos
+
+**Archivos clave:**
+- `src/components/EditProfileModal.tsx` - Edición de perfil
+- `backend/src/routes/profile.ts` - API de perfiles
+
+### **4. UI/UX Mejoradas**
+- ✅ Themed components con TasteBox branding
+- ✅ Gradientes y sombras elegantes
+- ✅ Animaciones suaves en hover/focus
+- ✅ Iconografía consistente con Lucide React
+- ✅ Responsive design optimizado
+- ✅ Theme switcher (claro/oscuro)
+- ✅ Loading states y feedback visual
+- ✅ Toasts informativos para acciones
+
+**Archivos clave:**
+- `src/index.css` - Estilos globales y themed variants
+- `src/components/ThemeSwitcher.tsx` - Switcher de tema
+- `src/contexts/ThemeContext.tsx` - Context de tema
+
+### **5. Validación y Manejo de Errores**
+- ✅ Schemas Zod robustos para null/undefined
+- ✅ Manejo de errores en importación de documentos
+- ✅ Cleanup automático de archivos temporales
+- ✅ Validación de tipos TypeScript estricta
+- ✅ Error boundaries y fallbacks
+
+**Mejoras específicas:**
+- Cambio de `.optional().nullable().transform()` a `.nullable().optional()`
+- Conversión de `null` a `''` en processing
+- Manejo de arrays vacíos en tags e ingredients
+- Timeouts para operaciones de larga duración
+
+---
+
+## 📋 PLAN: IMPORTACIÓN DE RECETAS EN PDF (COMPLETADO)
 
 ### 🎯 **Objetivo**
 Implementar sistema de importación de recetas desde archivos PDF con soporte completo para:

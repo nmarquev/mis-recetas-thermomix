@@ -411,4 +411,83 @@ All colors MUST be HSL.
       background-position: 200% center;
     }
   }
+
+  /* Bubble animations for cooking pot simulation */
+  @keyframes bubble-rise {
+    0% {
+      transform: translateY(0) scale(0.8);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    90% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(-100vh) scale(1.2);
+      opacity: 0;
+    }
+  }
+
+  @keyframes bubble-rise-wobble {
+    0% {
+      transform: translateY(0) translateX(0) scale(0.8);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    25% {
+      transform: translateY(-25vh) translateX(5px) scale(0.9);
+    }
+    50% {
+      transform: translateY(-50vh) translateX(-3px) scale(1);
+    }
+    75% {
+      transform: translateY(-75vh) translateX(8px) scale(1.1);
+    }
+    100% {
+      transform: translateY(-100vh) translateX(0) scale(1.2);
+      opacity: 0;
+    }
+  }
+
+  @keyframes bubble-rise-spiral {
+    0% {
+      transform: translateY(0) translateX(0) rotate(0deg) scale(0.7);
+      opacity: 0;
+    }
+    10% {
+      opacity: 1;
+    }
+    25% {
+      transform: translateY(-25vh) translateX(10px) rotate(90deg) scale(0.85);
+    }
+    50% {
+      transform: translateY(-50vh) translateX(-10px) rotate(180deg) scale(1);
+    }
+    75% {
+      transform: translateY(-75vh) translateX(15px) rotate(270deg) scale(1.15);
+    }
+    100% {
+      transform: translateY(-100vh) translateX(0) rotate(360deg) scale(1.3);
+      opacity: 0;
+    }
+  }
+
+  /* Individual bubble animations with different timings */
+  .animate-bubble-1 { animation: bubble-rise 4s ease-out infinite 0s; }
+  .animate-bubble-2 { animation: bubble-rise-wobble 5s ease-out infinite 0.5s; }
+  .animate-bubble-3 { animation: bubble-rise-spiral 6s ease-out infinite 1s; }
+  .animate-bubble-4 { animation: bubble-rise 3.5s ease-out infinite 1.5s; }
+  .animate-bubble-5 { animation: bubble-rise-wobble 4.5s ease-out infinite 2s; }
+  .animate-bubble-6 { animation: bubble-rise 3s ease-out infinite 2.5s; }
+  .animate-bubble-7 { animation: bubble-rise-spiral 5.5s ease-out infinite 3s; }
+  .animate-bubble-8 { animation: bubble-rise-wobble 4s ease-out infinite 3.5s; }
+  .animate-bubble-9 { animation: bubble-rise 3.2s ease-out infinite 4s; }
+  .animate-bubble-10 { animation: bubble-rise 2.8s ease-out infinite 0.8s; }
+  .animate-bubble-11 { animation: bubble-rise-wobble 3.8s ease-out infinite 1.3s; }
+  .animate-bubble-12 { animation: bubble-rise-spiral 4.2s ease-out infinite 1.8s; }
+  .animate-bubble-13 { animation: bubble-rise 2.5s ease-out infinite 2.3s; }
 }

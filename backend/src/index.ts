@@ -17,6 +17,8 @@ import importPdfRoutes from './routes/importPdf';
 import uploadRoutes from './routes/upload';
 import llmRoutes from './routes/llm';
 import profilePhotoRoutes from './routes/profilePhoto';
+import imageProxyRoutes from './routes/imageProxy';
+import nutritionRoutes from './routes/nutrition';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -87,6 +89,8 @@ app.use('/api/import/pdf', importPdfRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/llm', llmRoutes);
 app.use('/api/upload', profilePhotoRoutes);
+app.use('/api/proxy', imageProxyRoutes);
+app.use('/api/nutrition', nutritionRoutes);
 
 // Error handling middleware
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

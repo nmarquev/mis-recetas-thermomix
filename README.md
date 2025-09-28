@@ -1,73 +1,232 @@
-# Welcome to your Lovable project
+# 🍳 TasteBox - Recipe Genius
 
-## Project info
+Una aplicación web avanzada para gestión de recetas de cocina con funcionalidades de importación inteligente y síntesis de voz.
 
-**URL**: https://lovable.dev/projects/6f9c288b-d820-426d-9cab-9258a6697374
+## ✨ Características Principales
 
-## How can I edit this code?
+### 🎯 **Gestión de Recetas**
+- ✅ CRUD completo de recetas con validación robusta
+- ✅ Soporte para imágenes múltiples con gestión optimizada
+- ✅ Sistema de etiquetas y categorización automática
+- ✅ Filtrado avanzado por dificultad, tiempo, tipo, etc.
+- ✅ Favoritos y búsqueda inteligente
 
-There are several ways of editing your application.
+### 🤖 **Importación Inteligente**
+- ✅ **URLs**: Instagram, sitios web de recetas
+- ✅ **PDF**: Análisis multimodal con GPT-4o-mini
+- ✅ **DOCX**: Extracción avanzada de documentos Word
+- ✅ Detección automática de ingredientes e instrucciones
+- ✅ Generación automática de metadatos (tags, dificultad, tipo)
 
-**Use Lovable**
+### 🎧 **Text-to-Speech (TTS)**
+- ✅ Reproducción de recetas con voz natural
+- ✅ Generación automática de scripts narrativos
+- ✅ Configuración personalizable (velocidad, tono, idioma)
+- ✅ Soporte multi-idioma (ES-AR, ES-ES, EN-US, etc.)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/6f9c288b-d820-426d-9cab-9258a6697374) and start prompting.
+### 👤 **Gestión de Usuario**
+- ✅ Sistema de autenticación completo
+- ✅ Perfiles personalizables con foto
+- ✅ Configuraciones globales (tema, voz)
 
-Changes made via Lovable will be committed automatically to this repo.
+### 🎨 **UI/UX Moderna**
+- ✅ Diseño responsivo con Tailwind CSS
+- ✅ Tema claro/oscuro
+- ✅ Componentes elegantes con shadcn/ui
+- ✅ Animaciones suaves y feedback visual
 
-**Use your preferred IDE**
+## 🛠️ Stack Tecnológico
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### **Frontend**
+- **React 18** con TypeScript
+- **Vite** para desarrollo rápido
+- **Tailwind CSS** + **shadcn/ui** para styling
+- **Lucide React** para iconografía
+- **Zustand** para gestión de estado
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### **Backend**
+- **Node.js** con Express
+- **Prisma ORM** con SQLite
+- **JWT** para autenticación
+- **Multer** para upload de archivos
+- **Zod** para validación
 
-Follow these steps:
+### **IA y Procesamiento**
+- **OpenAI GPT-4o-mini** para análisis multimodal
+- **pdf-poppler** para procesamiento PDF
+- **mammoth** para archivos DOCX
+- **Web Speech API** para síntesis de voz
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 🚀 Instalación y Desarrollo
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### **Prerrequisitos**
+- Node.js 18+ y npm
+- Git
 
-# Step 3: Install the necessary dependencies.
-npm i
+### **Setup del Proyecto**
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+# Clonar repositorio
+git clone <repository-url>
+cd thermo-recipe-genius
+
+# Instalar dependencias del frontend
+npm install
+
+# Instalar dependencias del backend
+cd backend
+npm install
+
+# Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tu OpenAI API key y otras configuraciones
+
+# Generar Prisma client y base de datos
+npx prisma generate
+npx prisma db push
+
+# Volver al directorio raíz
+cd ..
 ```
 
-**Edit a file directly in GitHub**
+### **Comandos de Desarrollo**
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+# Iniciar frontend (puerto 5173)
+npm run dev
 
-**Use GitHub Codespaces**
+# Iniciar backend (puerto 3001)
+cd backend && npm run dev
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# O ejecutar ambos en paralelo
+npm run dev:all
+```
 
-## What technologies are used for this project?
+### **Comandos Útiles**
 
-This project is built with:
+```bash
+# Linting y type checking
+npm run lint
+npm run typecheck
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Build para producción
+npm run build
 
-## How can I deploy this project?
+# Base de datos
+cd backend && npx prisma studio  # Interfaz visual DB
+cd backend && npx prisma db seed  # Datos de prueba
+```
 
-Simply open [Lovable](https://lovable.dev/projects/6f9c288b-d820-426d-9cab-9258a6697374) and click on Share -> Publish.
+## 📁 Estructura del Proyecto
 
-## Can I connect a custom domain to my Lovable project?
+```
+thermo-recipe-genius/
+├── src/                          # Frontend React
+│   ├── components/               # Componentes reutilizables
+│   │   ├── pdf/                 # Componentes específicos PDF
+│   │   ├── docx/                # Componentes específicos DOCX
+│   │   └── ui/                  # Componentes base shadcn/ui
+│   ├── hooks/                   # Custom React hooks
+│   ├── services/                # API clients
+│   ├── types/                   # Definiciones TypeScript
+│   ├── utils/                   # Funciones utilitarias
+│   └── pages/                   # Páginas principales
+├── backend/                     # Backend Node.js
+│   ├── src/
+│   │   ├── routes/              # API endpoints
+│   │   ├── services/            # Lógica de negocio
+│   │   ├── middleware/          # Middlewares Express
+│   │   ├── types/               # Tipos compartidos
+│   │   └── utils/               # Utilidades backend
+│   ├── prisma/                  # Schema y migraciones DB
+│   └── uploads/                 # Archivos temporales
+├── public/                      # Assets estáticos
+└── docs/                        # Documentación
+```
 
-Yes, you can!
+## 🔧 Configuración
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### **Variables de Entorno**
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+```bash
+# Backend (.env)
+OPENAI_API_KEY=sk-...              # API key de OpenAI
+JWT_SECRET=your-jwt-secret         # Secret para JWT
+DATABASE_URL=file:./dev.db         # URL de base de datos
+PORT=3001                          # Puerto del backend
+UPLOAD_DIR=./uploads               # Directorio uploads
+
+# Frontend (opcional)
+VITE_API_URL=http://localhost:3001 # URL del backend
+```
+
+### **Base de Datos**
+
+El proyecto usa **SQLite** por simplicidad en desarrollo. Para producción, puedes cambiar a PostgreSQL o MySQL modificando el `schema.prisma`.
+
+```prisma
+// Para PostgreSQL
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+```
+
+## 📖 Uso
+
+### **Importar Recetas**
+
+1. **Desde URL**: Pega una URL de Instagram o sitio web de recetas
+2. **Desde PDF**: Sube un archivo PDF, selecciona páginas, extrae automáticamente
+3. **Desde DOCX**: Sube un documento Word con recetas
+4. **Manualmente**: Crea recetas desde cero
+
+### **Text-to-Speech**
+
+1. Haz clic en el botón ▶️ en cualquier tarjeta de receta
+2. Configura la voz en Settings > Configuración de Voz
+3. Ajusta velocidad, tono, idioma según preferencias
+
+### **Gestión**
+
+- **Filtros**: Usa el panel lateral para filtrar por tags, dificultad, etc.
+- **Favoritos**: Marca recetas como favoritas con ❤️
+- **Búsqueda**: Busca por nombre, ingredientes o tags
+- **Edición**: Edita cualquier receta con el botón ✏️
+
+## 🤝 Contribuir
+
+1. Fork el proyecto
+2. Crea una rama feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit cambios (`git commit -am 'Agregar nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Abre un Pull Request
+
+## 📝 Changelog
+
+### **v2.0.0** - Noviembre 2024
+- ✅ Sistema TTS completo con configuración personalizable
+- ✅ Importación PDF multimodal con GPT-4o-mini
+- ✅ Validación Zod robusta para null/undefined
+- ✅ UI/UX mejorada con themed components
+- ✅ Fixes en modales y manejo de errores
+
+### **v1.0.0** - Octubre 2024
+- ✅ Funcionalidad base de recetas
+- ✅ Importación DOCX y URLs
+- ✅ Sistema de autenticación
+- ✅ Gestión de imágenes
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
+
+## 🔗 Links
+
+- **Documentación**: [CLAUDE.md](./CLAUDE.md)
+- **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
+- **OpenAI API**: [Documentación](https://platform.openai.com/docs)
+
+---
+
+**Desarrollado con ❤️ usando React, Node.js y OpenAI**

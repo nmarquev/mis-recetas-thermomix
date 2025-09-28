@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { X, FileText, Zap, CheckCircle } from 'lucide-react';
+import { FileText, Zap, CheckCircle } from 'lucide-react';
 import { PdfUploader } from './PdfUploader';
 import { PdfPageSelector } from './PdfPageSelector';
 import { PdfRecipeExtractor } from './PdfRecipeExtractor';
@@ -154,18 +154,18 @@ export const PdfImportModal = ({ isOpen, onClose, onRecipeSaved }: PdfImportModa
           return {
             step: index + 1,
             description: instruction,
-            time: undefined,
-            temperature: undefined,
-            speed: undefined
+            time: "",
+            temperature: "",
+            speed: ""
           };
         }
         // If already an object (new format), ensure it has required fields
         return {
           step: instruction.step || index + 1,
           description: instruction.description || instruction.toString(),
-          time: instruction.time,
-          temperature: instruction.temperature,
-          speed: instruction.speed
+          time: instruction.time || "",
+          temperature: instruction.temperature || "",
+          speed: instruction.speed || ""
         };
       });
 
@@ -179,10 +179,10 @@ export const PdfImportModal = ({ isOpen, onClose, onRecipeSaved }: PdfImportModa
         servings: currentRecipe.estimatedData?.servings || 4,
         difficulty: currentRecipe.estimatedData?.difficulty || 'Medio',
         recipeType: currentRecipe.estimatedData?.recipeType || 'Otro',
-        tags: ['pdf-import'],
+        tags: currentRecipe.estimatedData?.tags || [],
         images: currentRecipe.thumbnailUrl ? [{
           url: currentRecipe.thumbnailUrl,
-          localPath: undefined,
+          localPath: null,
           order: 1,
           altText: `Imagen de ${currentRecipe.title}`
         }] : []
@@ -256,15 +256,10 @@ export const PdfImportModal = ({ isOpen, onClose, onRecipeSaved }: PdfImportModa
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader className="space-y-4">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center space-x-2">
-              <FileText className="h-5 w-5 text-blue-600" />
-              <span>Importar Recetas desde PDF</span>
-            </DialogTitle>
-            <Button variant="ghost" size="sm" onClick={handleClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="flex items-center space-x-2">
+            <FileText className="h-5 w-5 text-blue-600" />
+            <span>Importar Recetas desde PDF</span>
+          </DialogTitle>
 
           {/* Progress Bar */}
           <div className="space-y-2">

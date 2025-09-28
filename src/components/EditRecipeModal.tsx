@@ -8,9 +8,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
+import { useNutritionCalculator } from '@/hooks/useNutritionCalculator';
 import { api } from '@/services/api';
 import { Recipe } from '@/types/recipe';
-import { Loader2, Plus, X, Upload, Edit } from 'lucide-react';
+import { Loader2, Plus, X, Upload, Edit, Calculator } from 'lucide-react';
 import { resolveImageUrl } from '@/utils/api';
 
 interface EditRecipeModalProps {
@@ -30,6 +31,13 @@ interface RecipeFormData {
   recipeType: string;
   locution: string;
   tags: string[];
+  calories?: number;
+  protein?: number;
+  carbohydrates?: number;
+  fat?: number;
+  fiber?: number;
+  sugar?: number;
+  sodium?: number;
   ingredients: Array<{
     name: string;
     amount: string;
@@ -49,6 +57,7 @@ export const EditRecipeModal = ({ isOpen, onClose, recipe, onRecipeUpdated }: Ed
   const [existingImages, setExistingImages] = useState(recipe?.images || []);
   const [uploadedImages, setUploadedImages] = useState<Array<{ file: File; preview: string }>>([]);
   const { toast } = useToast();
+  const { calculateNutrition, isCalculating } = useNutritionCalculator();
 
   const { register, handleSubmit, control, formState: { errors }, reset, setValue, watch } = useForm<RecipeFormData>();
 
@@ -80,6 +89,13 @@ export const EditRecipeModal = ({ isOpen, onClose, recipe, onRecipeUpdated }: Ed
         recipeType: recipe.recipeType || '',
         locution: recipe.locution || '',
         tags: recipe.tags?.map(tag => typeof tag === 'string' ? tag : tag.tag || tag.name || '') || [],
+        calories: recipe.calories || undefined,
+        protein: recipe.protein || undefined,
+        carbohydrates: recipe.carbohydrates || undefined,
+        fat: recipe.fat || undefined,
+        fiber: recipe.fiber || undefined,
+        sugar: recipe.sugar || undefined,
+        sodium: recipe.sodium || undefined,
         ingredients: recipe.ingredients?.map(ing => ({
           name: ing.name,
           amount: ing.amount,
@@ -129,6 +145,33 @@ export const EditRecipeModal = ({ isOpen, onClose, recipe, onRecipeUpdated }: Ed
     });
   };
 
+  const handleCalculateNutrition = async () => {
+    const currentIngredients = watch('ingredients');
+    const currentServings = watch('servings');
+
+    if (!currentIngredients?.length || !currentServings) {
+      toast({
+        title: "Datos incompletos",
+        description: "Agregue ingredientes y porciones antes de calcular",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const result = await calculateNutrition(currentIngredients, currentServings);
+
+    if (result) {
+      // Update form with calculated nutrition values
+      setValue('calories', result.calories);
+      setValue('protein', result.protein);
+      setValue('carbohydrates', result.carbohydrates);
+      setValue('fat', result.fat);
+      setValue('fiber', result.fiber);
+      setValue('sugar', result.sugar);
+      setValue('sodium', result.sodium);
+    }
+  };
+
   const onSubmit = async (data: RecipeFormData) => {
     if (!recipe) return;
 
@@ -163,6 +206,13 @@ export const EditRecipeModal = ({ isOpen, onClose, recipe, onRecipeUpdated }: Ed
         recipeType: data.recipeType,
         locution: data.locution,
         tags: data.tags,
+        calories: data.calories,
+        protein: data.protein,
+        carbohydrates: data.carbohydrates,
+        fat: data.fat,
+        fiber: data.fiber,
+        sugar: data.sugar,
+        sodium: data.sodium,
         ingredients: data.ingredients.map((ing, index) => ({
           name: ing.name,
           amount: ing.amount,
@@ -301,6 +351,105 @@ export const EditRecipeModal = ({ isOpen, onClose, recipe, onRecipeUpdated }: Ed
                 {...register('recipeType')}
                 placeholder="ej: Pasta, Postre, Sopa"
               />
+            </div>
+          </div>
+
+          {/* Nutrition Section */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <Label className="text-lg font-semibold">Información Nutricional</Label>
+              <Button
+                type="button"
+                onClick={handleCalculateNutrition}
+                disabled={isCalculating}
+                variant="outline"
+                size="sm"
+              >
+                {isCalculating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Calculando...
+                  </>
+                ) : (
+                  <>
+                    <Calculator className="h-4 w-4 mr-2" />
+                    Calcular Nutrientes
+                  </>
+                )}
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div>
+                <Label htmlFor="calories">Calorías</Label>
+                <Input
+                  id="calories"
+                  type="number"
+                  step="0.1"
+                  {...register('calories')}
+                  placeholder="kcal"
+                />
+              </div>
+              <div>
+                <Label htmlFor="protein">Proteína</Label>
+                <Input
+                  id="protein"
+                  type="number"
+                  step="0.1"
+                  {...register('protein')}
+                  placeholder="g"
+                />
+              </div>
+              <div>
+                <Label htmlFor="carbohydrates">Carbohidratos</Label>
+                <Input
+                  id="carbohydrates"
+                  type="number"
+                  step="0.1"
+                  {...register('carbohydrates')}
+                  placeholder="g"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fat">Grasa</Label>
+                <Input
+                  id="fat"
+                  type="number"
+                  step="0.1"
+                  {...register('fat')}
+                  placeholder="g"
+                />
+              </div>
+              <div>
+                <Label htmlFor="fiber">Fibra</Label>
+                <Input
+                  id="fiber"
+                  type="number"
+                  step="0.1"
+                  {...register('fiber')}
+                  placeholder="g"
+                />
+              </div>
+              <div>
+                <Label htmlFor="sugar">Azúcar</Label>
+                <Input
+                  id="sugar"
+                  type="number"
+                  step="0.1"
+                  {...register('sugar')}
+                  placeholder="g"
+                />
+              </div>
+              <div>
+                <Label htmlFor="sodium">Sodio</Label>
+                <Input
+                  id="sodium"
+                  type="number"
+                  step="0.1"
+                  {...register('sodium')}
+                  placeholder="mg"
+                />
+              </div>
             </div>
           </div>
 

@@ -236,9 +236,9 @@ export class PdfProcessor {
           id: randomUUID(),
           title: recipe.title,
           content: this.formatRecipeContent(recipe),
-          hasImage: recipe.hasImage || false,
+          hasImage: false, // Always false for PDF imports until we can extract individual images
           pageNumbers: recipe.pageNumbers || [index + 1],
-          thumbnailUrl: pageImage?.thumbnailBase64 ? `data:image/jpeg;base64,${pageImage.thumbnailBase64}` : undefined,
+          thumbnailUrl: undefined, // No thumbnails for PDF imports
           estimatedData: recipe // Store the structured data for preview
         };
       });

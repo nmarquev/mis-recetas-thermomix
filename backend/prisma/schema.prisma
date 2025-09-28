@@ -38,6 +38,16 @@ model Recipe {
   sourceUrl   String?  // URL if imported
   featured    Boolean? @default(false) // Favorite/starred recipe
   locution    String?  // TTS script text for audio playback
+
+  // Nutritional information (per serving)
+  calories      Float? // Calories per serving
+  protein       Float? // Protein in grams per serving
+  carbohydrates Float? // Carbohydrates in grams per serving
+  fat           Float? // Fat in grams per serving
+  fiber         Float? // Fiber in grams per serving
+  sugar         Float? // Sugar in grams per serving
+  sodium        Float? // Sodium in milligrams per serving
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

@@ -1,7 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, Users, ChefHat, Edit, Trash2, MoreVertical, Heart, Share, Printer, Download, Play, ExternalLink } from "lucide-react";
+import { Clock, Users, ChefHat, Edit, Trash2, MoreVertical, Heart, Share, Printer, Download, Play, Pause, ExternalLink, Calculator } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Recipe } from "@/types/recipe";
 import { resolveImageUrl } from "@/utils/api";
@@ -14,10 +14,14 @@ interface RecipeCardProps {
   onEdit?: (recipe: Recipe) => void;
   onDelete?: (recipe: Recipe) => void;
   onToggleFavorite?: (recipe: Recipe) => void;
+  onPlayTTS?: (recipe: Recipe) => void;
+  onShowNutrition?: (recipe: Recipe) => void;
   columns?: 2 | 3 | 4;
+  isPlayingTTS?: boolean;
+  isGeneratingScript?: boolean;
 }
 
-export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite, columns = 3 }: RecipeCardProps) => {
+export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite, onPlayTTS, onShowNutrition, columns = 3, isPlayingTTS = false, isGeneratingScript = false }: RecipeCardProps) => {
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "Fácil": return "bg-secondary text-secondary-foreground";
@@ -29,6 +33,7 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite,
 
   const primaryImage = recipe.images?.[0];
   const hasMultipleImages = recipe.images && recipe.images.length > 1;
+  const hasNutritionData = recipe.calories !== null && recipe.calories !== undefined && recipe.calories > 0;
 
   // Get dynamic image height based on columns
   const getImageHeight = () => {
@@ -85,6 +90,15 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite,
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                {onShowNutrition && (
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    onShowNutrition(recipe);
+                  }}>
+                    <Calculator className="h-4 w-4 mr-2" />
+                    Ver Nutrición
+                  </DropdownMenuItem>
+                )}
                 {recipe.sourceUrl && isValidUrl(recipe.sourceUrl) && (
                   <DropdownMenuItem onClick={() => window.open(recipe.sourceUrl, '_blank')}>
                     <ExternalLink className="h-4 w-4 mr-2" />
@@ -102,10 +116,6 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite,
                 <DropdownMenuItem onClick={() => {}}>
                   <Download className="h-4 w-4 mr-2" />
                   Descargar
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {}}>
-                  <Play className="h-4 w-4 mr-2" />
-                  Reproducir
                 </DropdownMenuItem>
                 {onEdit && (
                   <DropdownMenuItem onClick={() => onEdit(recipe)}>
@@ -192,13 +202,35 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite,
           )}
         </div>
         
-        <Button 
-          onClick={() => onView(recipe)}
-          variant="recipe"
-          className="w-full"
-        >
-          Ver Receta
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => onView(recipe)}
+            variant="recipe"
+            className="flex-1"
+          >
+            Ver Receta
+          </Button>
+          {onPlayTTS && (
+            <Button
+              variant="outline"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPlayTTS(recipe);
+              }}
+              className="px-3 h-10 border-orange-200 hover:border-orange-300 hover:bg-orange-50"
+              title={isPlayingTTS ? "Pausar audio" : "Escuchar receta"}
+              disabled={isGeneratingScript}
+            >
+              {isGeneratingScript ? (
+                <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+              ) : isPlayingTTS ? (
+                <Pause className="h-4 w-4" />
+              ) : (
+                <Play className="h-4 w-4" />
+              )}
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

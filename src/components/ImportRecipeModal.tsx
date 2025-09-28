@@ -15,9 +15,10 @@ interface ImportRecipeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImportSuccess: (recipe: Recipe) => void;
+  onViewRecipe?: (recipe: Recipe) => void;
 }
 
-export const ImportRecipeModal = ({ isOpen, onClose, onImportSuccess }: ImportRecipeModalProps) => {
+export const ImportRecipeModal = ({ isOpen, onClose, onImportSuccess, onViewRecipe }: ImportRecipeModalProps) => {
   const [url, setUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [importedRecipe, setImportedRecipe] = useState<ImportRecipeResponse['recipe'] | null>(null);
@@ -85,6 +86,15 @@ export const ImportRecipeModal = ({ isOpen, onClose, onImportSuccess }: ImportRe
       toast({
         title: "¡Receta guardada!",
         description: "La receta se ha guardado exitosamente en tu colección",
+        action: onViewRecipe ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onViewRecipe(savedRecipe)}
+          >
+            Ver receta
+          </Button>
+        ) : undefined,
       });
     } catch (error) {
       console.error('Save error:', error);
@@ -293,6 +303,49 @@ export const ImportRecipeModal = ({ isOpen, onClose, onImportSuccess }: ImportRe
                   )}
                 </div>
               </div>
+
+              {/* Nutritional Information */}
+              {importedRecipe.nutritionalInfo && (
+                <div>
+                  <h4 className="font-medium mb-2">Información Nutricional (por porción)</h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-3 bg-muted rounded-lg">
+                      <div className="text-lg font-semibold">{importedRecipe.nutritionalInfo.calories}</div>
+                      <div className="text-xs text-muted-foreground">Calorías</div>
+                    </div>
+                    <div className="text-center p-3 bg-muted rounded-lg">
+                      <div className="text-lg font-semibold">{importedRecipe.nutritionalInfo.protein}g</div>
+                      <div className="text-xs text-muted-foreground">Proteínas</div>
+                    </div>
+                    <div className="text-center p-3 bg-muted rounded-lg">
+                      <div className="text-lg font-semibold">{importedRecipe.nutritionalInfo.carbohydrates}g</div>
+                      <div className="text-xs text-muted-foreground">Carbohidratos</div>
+                    </div>
+                    <div className="text-center p-3 bg-muted rounded-lg">
+                      <div className="text-lg font-semibold">{importedRecipe.nutritionalInfo.fat}g</div>
+                      <div className="text-xs text-muted-foreground">Grasas</div>
+                    </div>
+                    {importedRecipe.nutritionalInfo.fiber && (
+                      <div className="text-center p-3 bg-muted rounded-lg">
+                        <div className="text-lg font-semibold">{importedRecipe.nutritionalInfo.fiber}g</div>
+                        <div className="text-xs text-muted-foreground">Fibra</div>
+                      </div>
+                    )}
+                    {importedRecipe.nutritionalInfo.sugar && (
+                      <div className="text-center p-3 bg-muted rounded-lg">
+                        <div className="text-lg font-semibold">{importedRecipe.nutritionalInfo.sugar}g</div>
+                        <div className="text-xs text-muted-foreground">Azúcar</div>
+                      </div>
+                    )}
+                    {importedRecipe.nutritionalInfo.sodium && (
+                      <div className="text-center p-3 bg-muted rounded-lg">
+                        <div className="text-lg font-semibold">{importedRecipe.nutritionalInfo.sodium}mg</div>
+                        <div className="text-xs text-muted-foreground">Sodio</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Ingredients */}
               <div>

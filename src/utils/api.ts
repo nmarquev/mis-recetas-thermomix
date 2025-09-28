@@ -16,18 +16,19 @@ export const getApiBaseUrl = (): string => {
   return `${getServerBaseUrl()}/api`;
 };
 
-// Utility function to resolve image URLs
+// Utility function to resolve image URLs with proxy support
 export const resolveImageUrl = (url: string): string => {
   if (!url) return '';
 
-  // If it's already a full URL, return as is
-  if (url.startsWith('http://') || url.startsWith('https://')) {
-    return url;
+  // If it's a local/uploaded image path, prepend the server base URL
+  if (url.startsWith('/uploads/') || url.startsWith('/')) {
+    return `${getServerBaseUrl()}${url}`;
   }
 
-  // If it's a relative path, prepend the server base URL
-  if (url.startsWith('/')) {
-    return `${getServerBaseUrl()}${url}`;
+  // If it's an external URL, use the image proxy to avoid CORS issues
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    const proxyUrl = `${getServerBaseUrl()}/api/proxy/image?url=${encodeURIComponent(url)}`;
+    return proxyUrl;
   }
 
   return url;

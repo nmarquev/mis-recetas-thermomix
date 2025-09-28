@@ -130,9 +130,9 @@ export const DocxImportModal = ({ isOpen, onClose, onRecipeSaved }: DocxImportMo
         instructions: recipe.estimatedData.instructions?.map((inst, index) => ({
           step: index + 1,
           description: inst,
-          time: undefined,
-          temperature: undefined,
-          speed: undefined
+          time: "",
+          temperature: "",
+          speed: ""
         })) || [],
         prepTime: recipe.estimatedData.prepTime || 30,
         cookTime: recipe.estimatedData.cookTime,

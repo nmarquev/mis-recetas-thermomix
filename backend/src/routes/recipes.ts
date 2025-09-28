@@ -11,33 +11,43 @@ const createRecipeSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   prepTime: z.number().min(1),
-  cookTime: z.number().optional(),
+  cookTime: z.number().optional().nullable(),
   servings: z.number().min(1),
   difficulty: z.enum(['Fácil', 'Medio', 'Difícil']),
   recipeType: z.string().optional(),
   sourceUrl: z.string().url().optional(),
+
+  // Nutritional information (optional)
+  calories: z.number().optional().nullable(),
+  protein: z.number().optional().nullable(),
+  carbohydrates: z.number().optional().nullable(),
+  fat: z.number().optional().nullable(),
+  fiber: z.number().optional().nullable(),
+  sugar: z.number().optional().nullable(),
+  sodium: z.number().optional().nullable(),
+
   images: z.array(z.object({
     url: z.string(),
-    localPath: z.string().optional(),
+    localPath: z.string().optional().nullable(),
     order: z.number(),
     altText: z.string().optional()
   })).max(3),
   ingredients: z.array(z.object({
     name: z.string().min(1),
-    amount: z.string().min(1),
-    unit: z.string().optional(),
+    amount: z.string(),  // Allow empty amounts for "al gusto" ingredients
+    unit: z.string().nullable().optional().transform(val => val ?? ''),
     order: z.number()
   })),
   instructions: z.array(z.object({
     step: z.number(),
     description: z.string().min(1),
-    time: z.string().optional(),
-    temperature: z.string().optional(),
-    speed: z.string().optional()
+    time: z.string().nullable().optional().transform(val => val ?? ''),
+    temperature: z.string().nullable().optional().transform(val => val ?? ''),
+    speed: z.string().nullable().optional().transform(val => val ?? '')
   })),
   tags: z.array(z.string()),
   featured: z.boolean().optional(),
-  locution: z.string().optional()
+  locution: z.string().optional().nullable()
 });
 
 // Update recipe schema (more flexible for updates)
@@ -45,29 +55,39 @@ const updateRecipeSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
   prepTime: z.number().min(1),
-  cookTime: z.number().optional(),
+  cookTime: z.number().optional().nullable(),
   servings: z.number().min(1),
   difficulty: z.enum(['Fácil', 'Medio', 'Difícil']),
   recipeType: z.string().optional(),
   sourceUrl: z.string().url().optional(),
+
+  // Nutritional information (optional)
+  calories: z.number().optional().nullable(),
+  protein: z.number().optional().nullable(),
+  carbohydrates: z.number().optional().nullable(),
+  fat: z.number().optional().nullable(),
+  fiber: z.number().optional().nullable(),
+  sugar: z.number().optional().nullable(),
+  sodium: z.number().optional().nullable(),
+
   images: z.array(z.object({
     url: z.string(),
-    localPath: z.string().optional(),
+    localPath: z.string().optional().nullable(),
     order: z.number(),
     altText: z.string().optional()
   })).max(3),
   ingredients: z.array(z.object({
     name: z.string().min(1),
-    amount: z.string().min(1),
-    unit: z.string().optional(),
+    amount: z.string(),  // Allow empty amounts for "al gusto" ingredients
+    unit: z.string().nullable().optional().transform(val => val ?? ''),
     order: z.number()
   })),
   instructions: z.array(z.object({
     step: z.number(),
     description: z.string().min(1),
-    time: z.string().optional(),
-    temperature: z.string().optional(),
-    speed: z.string().optional()
+    time: z.string().nullable().optional().transform(val => val ?? ''),
+    temperature: z.string().nullable().optional().transform(val => val ?? ''),
+    speed: z.string().nullable().optional().transform(val => val ?? '')
   })),
   tags: z.array(z.union([
     z.string(),
@@ -77,7 +97,7 @@ const updateRecipeSchema = z.object({
     })
   ])),
   featured: z.boolean().optional(),
-  locution: z.string().optional()
+  locution: z.string().optional().nullable()
 });
 
 // Get all recipes for user
@@ -198,6 +218,16 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         sourceUrl: data.sourceUrl,
         featured: data.featured,
         locution: data.locution,
+
+        // Nutritional information
+        calories: data.calories,
+        protein: data.protein,
+        carbohydrates: data.carbohydrates,
+        fat: data.fat,
+        fiber: data.fiber,
+        sugar: data.sugar,
+        sodium: data.sodium,
+
         userId: req.user!.id,
         images: {
           create: data.images.map(img => ({
@@ -274,6 +304,11 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
 // Update recipe
 router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
+    console.log('📝 Update recipe request received for ID:', req.params.id);
+    console.log('📝 Request body keys:', Object.keys(req.body));
+    console.log('📝 Ingredients count:', req.body.ingredients?.length);
+    console.log('📝 Instructions count:', req.body.instructions?.length);
+
     const data = updateRecipeSchema.parse(req.body);
 
     // Check if recipe belongs to user
@@ -302,6 +337,15 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
         sourceUrl: data.sourceUrl,
         featured: data.featured,
         locution: data.locution,
+
+        // Nutritional information
+        calories: data.calories,
+        protein: data.protein,
+        carbohydrates: data.carbohydrates,
+        fat: data.fat,
+        fiber: data.fiber,
+        sugar: data.sugar,
+        sodium: data.sodium,
         // For simplicity, we'll replace all related data
         images: {
           deleteMany: {},
@@ -376,6 +420,11 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
   } catch (error) {
     console.error('Update recipe error:', error);
     if (error instanceof z.ZodError) {
+      console.error('🔍 Update recipe validation error details:', JSON.stringify(error.errors, null, 2));
+      console.error('🔍 Failed fields:');
+      error.errors.forEach(err => {
+        console.error(`  Path: ${err.path.join('.')} - Code: ${err.code} - Message: ${err.message}`);
+      });
       return res.status(400).json({ error: 'Validation error', details: error.errors });
     }
     res.status(500).json({ error: 'Internal server error' });

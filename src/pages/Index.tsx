@@ -3,25 +3,30 @@ import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { RecipeCard, Recipe } from "@/components/RecipeCard";
 import { RecipeModal } from "@/components/RecipeModal";
+import { NutritionModal } from "@/components/NutritionModal";
 import { FilterPanel, RecipeFilters } from "@/components/FilterPanel";
 import { ImportRecipeModal } from "@/components/ImportRecipeModal";
 import { CreateRecipeModal } from "@/components/CreateRecipeModal";
 import { EditRecipeModal } from "@/components/EditRecipeModal";
 import { DeleteRecipeDialog } from "@/components/DeleteRecipeDialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Grid3X3, Grid2X2, Grid, Columns, Filter, ChevronDown, X } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Grid3X3, Grid2X2, Grid, Columns, Filter, ChevronDown, X, Play, Pause, Search } from "lucide-react";
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { AuthPage } from "@/components/auth/AuthPage";
 import { isThermomixRecipe } from "@/utils/recipeUtils";
+import { useVoiceSettings } from "@/hooks/useVoiceSettings";
 
 const Index = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const { applySettingsToUtterance } = useVoiceSettings();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe | null>(null);
@@ -34,8 +39,14 @@ const Index = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showNutritionModal, setShowNutritionModal] = useState(false);
   const [recipeToEdit, setRecipeToEdit] = useState<Recipe | null>(null);
   const [recipeToDelete, setRecipeToDelete] = useState<Recipe | null>(null);
+  const [nutritionRecipe, setNutritionRecipe] = useState<Recipe | null>(null);
+
+  // TTS states
+  const [playingRecipeId, setPlayingRecipeId] = useState<string | null>(null);
+  const [generatingScript, setGeneratingScript] = useState<string | null>(null);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [isLoadingRecipes, setIsLoadingRecipes] = useState(true);
   const [filters, setFilters] = useState<RecipeFilters>({
@@ -53,14 +64,24 @@ const Index = () => {
 
   // Apply search and filters, then sort alphabetically (only when user is logged in)
   const allFilteredRecipes = user ? recipes.filter(recipe => {
-    // Search filter
+    // Search filter - busca en título, descripción, ingredientes, instrucciones y etiquetas
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch = !searchTerm ||
-      recipe.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      recipe.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      recipe.title.toLowerCase().includes(searchLower) ||
+      recipe.description.toLowerCase().includes(searchLower) ||
+      (recipe.ingredients || []).some(ingredient =>
+        ingredient.name.toLowerCase().includes(searchLower) ||
+        (ingredient.amount && ingredient.amount.toLowerCase().includes(searchLower)) ||
+        (ingredient.unit && ingredient.unit.toLowerCase().includes(searchLower))
+      ) ||
+      (recipe.instructions || []).some(instruction =>
+        instruction.description.toLowerCase().includes(searchLower)
+      ) ||
       (recipe.tags || []).some(tag => {
         const tagValue = typeof tag === 'string' ? tag : tag.tag || tag.name || '';
-        return tagValue.toLowerCase().includes(searchTerm.toLowerCase());
-      });
+        return tagValue.toLowerCase().includes(searchLower);
+      }) ||
+      (recipe.recipeType && recipe.recipeType.toLowerCase().includes(searchLower));
 
     // Difficulty filter
     const matchesDifficulty = filters.difficulty.length === 0 ||
@@ -165,6 +186,12 @@ const Index = () => {
   };
 
   const handleCloseModal = () => {
+    // Cleanup TTS states when closing modal
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+    }
+    setPlayingRecipeId(null);
+    setGeneratingScript(null);
     setSelectedRecipe(null);
   };
 
@@ -249,6 +276,21 @@ const Index = () => {
   const handleDeleteRecipe = (recipe: Recipe) => {
     setRecipeToDelete(recipe);
     setShowDeleteDialog(true);
+  };
+
+  const handleShowNutrition = (recipe: Recipe) => {
+    setNutritionRecipe(recipe);
+    setShowNutritionModal(true);
+  };
+
+  const handleNutritionUpdate = (updatedRecipe: Recipe) => {
+    // Update the recipe in the main recipes list
+    setRecipes(prev => prev.map(recipe =>
+      recipe.id === updatedRecipe.id ? updatedRecipe : recipe
+    ));
+
+    // Update the nutrition recipe state to reflect changes
+    setNutritionRecipe(updatedRecipe);
   };
 
   const handleRecipeDeleted = (recipeId: string) => {
@@ -376,6 +418,137 @@ const Index = () => {
     });
   };
 
+  const handlePlayTTS = async (recipe: Recipe) => {
+    try {
+      // If already playing this recipe, pause it
+      if (playingRecipeId === recipe.id) {
+        window.speechSynthesis.cancel();
+        setPlayingRecipeId(null);
+        toast({
+          title: "🔇 Audio pausado",
+          description: `"${recipe.title}"`,
+        });
+        return;
+      }
+
+      // If playing another recipe, stop it first
+      if (playingRecipeId) {
+        window.speechSynthesis.cancel();
+        setPlayingRecipeId(null);
+        // Small delay to ensure cancel is processed
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      if (!('speechSynthesis' in window)) {
+        toast({
+          title: "No compatible",
+          description: "TTS no es soportado en este navegador",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      let scriptText = recipe.locution;
+
+      // Generate script if it doesn't exist
+      if (!scriptText?.trim()) {
+        setGeneratingScript(recipe.id);
+
+        const prompt = `Genera un script para explicar esta receta de cocina. El script debe ser natural, entusiasta y fácil de seguir. NO te presentes ni menciones tu nombre, simplemente explica la receta directamente. Los datos de la receta son:
+
+Título: ${recipe.title}
+Descripción: ${recipe.description || 'Sin descripción'}
+Tiempo de preparación: ${recipe.prepTime} minutos
+Tiempo de cocción: ${recipe.cookTime || 'No especificado'} minutos
+Porciones: ${recipe.servings}
+Dificultad: ${recipe.difficulty}
+
+Ingredientes:
+${recipe.ingredients.map(ing => `- ${ing.amount} ${ing.unit || ''} ${ing.name}`).join('\n')}
+
+Instrucciones:
+${recipe.instructions.map((inst, idx) => `${idx + 1}. ${inst.description}`).join('\n')}
+
+Genera un script natural y conversacional explicando la receta paso a paso. Comienza directamente con la receta sin presentarte. Que sea fluido y agradable de escuchar.`;
+
+        try {
+          const response = await api.llm.generateScript(prompt);
+          if (response && response.success && response.script) {
+            scriptText = response.script;
+
+            // Save the generated script to the recipe
+            const updatedRecipe = { ...recipe, locution: scriptText };
+            await api.recipes.update(recipe.id, updatedRecipe);
+
+            // Update local state
+            setRecipes(prev => prev.map(r => r.id === recipe.id ? updatedRecipe : r));
+          }
+        } catch (error) {
+          console.error('Error generating TTS script:', error);
+          toast({
+            title: "Error",
+            description: "No se pudo generar el script automáticamente",
+            variant: "destructive",
+          });
+          return;
+        } finally {
+          setGeneratingScript(null);
+        }
+      }
+
+      if (!scriptText?.trim()) {
+        toast({
+          title: "Sin contenido",
+          description: "No hay texto para reproducir",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create utterance and apply voice settings
+      const utterance = new SpeechSynthesisUtterance(scriptText);
+
+      // Apply voice settings
+      utterance.rate = 0.9;
+      utterance.pitch = 1.0;
+      utterance.volume = 1.0;
+      utterance.lang = 'es-AR';
+
+      utterance.onstart = () => {
+        setPlayingRecipeId(recipe.id);
+        toast({
+          title: "🎧 Reproduciendo receta",
+          description: `"${recipe.title}"`,
+        });
+      };
+
+      utterance.onend = () => {
+        setPlayingRecipeId(null);
+      };
+
+      utterance.onerror = () => {
+        setPlayingRecipeId(null);
+        toast({
+          title: "Error de reproducción",
+          description: "No se pudo reproducir el audio",
+          variant: "destructive",
+        });
+      };
+
+      window.speechSynthesis.speak(utterance);
+
+    } catch (error) {
+      console.error('Error in TTS playback:', error);
+      setPlayingRecipeId(null);
+      setGeneratingScript(null);
+      toast({
+        title: "Error",
+        description: "Error al reproducir la receta",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Get grid class based on column count
   const getGridClass = () => {
     switch (gridColumns) {
@@ -406,11 +579,10 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
         onAddRecipe={handleAddRecipe}
         onImportRecipe={handleImportRecipe}
         onRecipeAdded={loadRecipes}
+        onViewRecipe={handleViewRecipe}
       />
       
       {showHero && (
@@ -431,6 +603,17 @@ const Index = () => {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {/* Search input */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nombre, ingrediente, etiqueta..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-48 sm:w-64"
+              />
+            </div>
+
             {/* Column selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
@@ -595,11 +778,46 @@ const Index = () => {
         </Collapsible>
 
         {isLoadingRecipes ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">⏳</div>
-            <h3 className="text-xl font-semibold text-foreground mb-2">
-              Cargando recetas...
-            </h3>
+          <div className={getGridClass()}>
+            {Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="group overflow-hidden bg-gradient-card shadow-recipe-card rounded-lg">
+                {/* Image skeleton */}
+                <Skeleton className="w-full h-48 rounded-t-lg" />
+
+                {/* Content skeleton */}
+                <div className="p-4 space-y-3">
+                  {/* Title skeleton */}
+                  <Skeleton className="h-6 w-3/4" />
+
+                  {/* Description skeleton */}
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-4 w-2/3" />
+
+                  {/* Meta info skeleton */}
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-20" />
+                  </div>
+
+                  {/* Recipe type skeleton */}
+                  <Skeleton className="h-6 w-20" />
+
+                  {/* Tags skeleton */}
+                  <div className="flex flex-wrap gap-1">
+                    <Skeleton className="h-5 w-16" />
+                    <Skeleton className="h-5 w-20" />
+                    <Skeleton className="h-5 w-14" />
+                  </div>
+
+                  {/* Buttons skeleton */}
+                  <div className="flex gap-2">
+                    <Skeleton className="h-10 flex-1" />
+                    <Skeleton className="h-10 w-12" />
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         ) : filteredRecipes.length > 0 ? (
           <>
@@ -613,6 +831,10 @@ const Index = () => {
                   onEdit={handleEditRecipe}
                   onDelete={handleDeleteRecipe}
                   onToggleFavorite={handleToggleFavorite}
+                  onPlayTTS={handlePlayTTS}
+                  onShowNutrition={handleShowNutrition}
+                  isPlayingTTS={playingRecipeId === recipe.id}
+                  isGeneratingScript={generatingScript === recipe.id}
                 />
               ))}
             </div>
@@ -658,6 +880,7 @@ const Index = () => {
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
         onImportSuccess={handleImportSuccess}
+        onViewRecipe={handleViewRecipe}
       />
 
       <CreateRecipeModal
@@ -678,6 +901,13 @@ const Index = () => {
         onClose={() => setShowDeleteDialog(false)}
         recipe={recipeToDelete}
         onRecipeDeleted={handleRecipeDeleted}
+      />
+
+      <NutritionModal
+        recipe={nutritionRecipe}
+        isOpen={showNutritionModal}
+        onClose={() => setShowNutritionModal(false)}
+        onRecipeUpdate={handleNutritionUpdate}
       />
 
       {/* Footer */}

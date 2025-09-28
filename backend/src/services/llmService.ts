@@ -101,7 +101,7 @@ export class LLMService {
     console.log('\n=== 🤖 LLM REQUEST START ===');
     console.log('📍 Source URL:', sourceUrl);
     console.log('📝 HTML Content Length:', html.length, 'characters');
-    console.log('🎯 Model:', 'gpt-4o-mini');
+    console.log('🎯 Model:', 'gpt-5-mini');
     console.log('🌡️ Temperature:', 0.1);
     console.log('📄 Max Tokens:', 4000);
     console.log('\n📋 SYSTEM PROMPT:');
@@ -130,7 +130,7 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
 
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
         messages: [
           {
             role: 'system',
@@ -158,8 +158,7 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
           }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.1,
-        max_tokens: 4000
+        max_completion_tokens: 4000
       });
 
       console.log('\n✅ LLM RESPONSE RECEIVED');

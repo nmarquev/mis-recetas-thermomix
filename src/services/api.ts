@@ -375,6 +375,49 @@ export const api = {
 
       return response.json();
     },
+
+    searchRecipes: async (query: string, count: number = 3, offset: number = 0): Promise<{ success: boolean; recipes: any[]; hasMore: boolean; error?: string }> => {
+      const response = await authFetch('/llm/search-recipes', {
+        method: 'POST',
+        body: JSON.stringify({ query, count, offset }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to search recipes');
+      }
+
+      return response.json();
+    },
+  },
+
+  // Nutrition endpoints
+  nutrition: {
+    calculate: async (ingredients: Array<{name: string; amount: string; unit?: string}>, servings: number = 4): Promise<{
+      success: boolean;
+      nutrition?: {
+        calories: number;
+        protein: number;
+        carbohydrates: number;
+        fat: number;
+        fiber: number;
+        sugar: number;
+        sodium: number;
+      };
+      error?: string;
+    }> => {
+      const response = await authFetch('/nutrition/calculate', {
+        method: 'POST',
+        body: JSON.stringify({ ingredients, servings }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to calculate nutrition');
+      }
+
+      return response.json();
+    },
   },
 
   // Generic API methods

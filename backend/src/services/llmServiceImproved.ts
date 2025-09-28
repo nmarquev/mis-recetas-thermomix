@@ -42,7 +42,8 @@ export class LLMServiceImproved {
     }
 
     this.openai = new OpenAI({
-      apiKey
+      apiKey,
+      timeout: 60000 // 60 seconds timeout for LLM requests
     });
   }
 
@@ -378,11 +379,13 @@ export class LLMServiceImproved {
       const videoPrompt = this.buildVideoExtractionPrompt(content);
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
+        reasoning_effort: 'minimal',
+        verbosity: 'low',
         messages: [
           {
             role: 'system',
-            content: `Eres un extractor especializado de recetas de videos de cocina. Tu trabajo es extraer información de recetas desde:
+            content: `Eres un extractor especializado de recetas de videos de cocina. Responde rápido sin demoras en razonamiento. Tu trabajo es extraer información de recetas desde:
 - Títulos y descripciones de videos de cocina
 - Transcripciones o subtítulos cuando estén disponibles
 - Metadatos de videos que contengan recetas
@@ -407,8 +410,7 @@ La respuesta DEBE ser un JSON válido con la estructura exacta solicitada.`
             content: videoPrompt
           }
         ],
-        temperature: 0.1,
-        max_tokens: 4000,
+        max_completion_tokens: 4000,
         response_format: { type: 'json_object' }
       });
 
@@ -541,8 +543,34 @@ ${truncatedContent}`;
       'Connection': 'keep-alive'
     };
 
-    // Use cookpad-specific headers for cookpad.com
-    const headers = url.includes('cookpad.com') ? cookpadHeaders : modernHeaders;
+    // Cookidoo-specific headers with additional auth-like headers
+    const cookidooHeaders = {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+      'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+      'Accept-Encoding': 'gzip, deflate, br, zstd',
+      'Cache-Control': 'max-age=0',
+      'Sec-Ch-Ua': '"Not A(Brand";v="99", "Google Chrome";v="121", "Chromium";v="121"',
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"Windows"',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'same-origin',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1',
+      'Referer': 'https://cookidoo.international/',
+      'Origin': 'https://cookidoo.international'
+    };
+
+    // Use specific headers based on domain
+    let headers;
+    if (url.includes('cookpad.com')) {
+      headers = cookpadHeaders;
+    } else if (url.includes('cookidoo.international')) {
+      headers = cookidooHeaders;
+    } else {
+      headers = modernHeaders;
+    }
 
     try {
       console.log('🔄 Attempt 1: Site-specific headers with axios...');
@@ -557,7 +585,7 @@ ${truncatedContent}`;
         method: 'GET',
         url: url,
         headers: headers,
-        timeout: 30000,
+        timeout: 45000, // Increased from 30s to 45s (50% increase)
         maxRedirects: 5,
         responseType: 'text',
         validateStatus: (status) => status < 400,
@@ -574,6 +602,13 @@ ${truncatedContent}`;
       });
 
       console.log('📏 Content length:', response.data.length, 'characters');
+
+      // Detect Cookidoo authentication issues
+      if (url.includes('cookidoo.international') && this.isCookidooLoginPage(response.data)) {
+        console.log('🔒 Cookidoo authentication required - content indicates login needed');
+        throw new Error('Cookidoo requiere estar autenticado para acceder a esta receta. Por favor, abre la URL en tu navegador donde ya estés logueado y copia el contenido de la receta manualmente.');
+      }
+
       return response.data;
 
     } catch (axiosError: any) {
@@ -589,7 +624,7 @@ ${truncatedContent}`;
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
             'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8'
           },
-          timeout: 30000,
+          timeout: 45000, // Increased from 30s to 45s (50% increase)
           maxRedirects: 5,
           responseType: 'text',
           validateStatus: (status) => status < 400
@@ -629,12 +664,12 @@ ${truncatedContent}`;
   }
 
   private async extractRecipeWithLLM(html: string, sourceUrl: string): Promise<RecipeImportResponse> {
-    const prompt = this.buildExtractionPrompt(html);
+    const prompt = this.buildExtractionPrompt(html, sourceUrl);
 
     console.log('\n=== 🤖 LLM REQUEST START ===');
     console.log('📍 Source URL:', sourceUrl);
     console.log('📝 HTML Content Length:', html.length, 'characters');
-    console.log('🎯 Model:', 'gpt-4o-mini');
+    console.log('🎯 Model:', 'gpt-5-mini');
     console.log('🌡️ Temperature:', 0.1);
     console.log('📄 Max Tokens:', 4000);
     console.log('\n📋 SYSTEM PROMPT:');
@@ -665,11 +700,13 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
     let responseContent: string | undefined;
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
+        reasoning_effort: 'minimal',
+        verbosity: 'low',
         messages: [
           {
             role: 'system',
-            content: `Eres un extractor de recetas de cocina. Tu trabajo es encontrar y extraer recetas de páginas web.
+            content: `Eres un extractor de recetas de cocina. Responde directamente sin razonamiento extenso. Tu trabajo es encontrar y extraer recetas de páginas web.
 
 BUSCA cualquier contenido que contenga:
 - Lista de ingredientes + instrucciones de preparación
@@ -682,12 +719,14 @@ EXTRAE los datos EXACTAMENTE como aparecen:
 - Instrucciones: copia el texto exacto
 - Tiempos y porciones: valores exactos mencionados
 
-⚠️ INSTRUCCIONES - CAPTURA TODOS LOS PASOS:
+⚠️ INSTRUCCIONES - REGLAS CRÍTICAS:
 - Si ves pasos numerados (1., 2., 3...) incluye TODOS sin excepción
 - Si ves bullets o guiones (-, *, •) incluye TODOS los puntos
 - Si hay párrafos largos, divídelos en pasos lógicos
-- Verifica que no falte ningún paso de la secuencia
-- Mantén el orden exacto como aparece en la página
+- NUNCA generes comentarios como "instrucciones no visibles" o "preparación típica basada en..."
+- SOLO incluye pasos de cocina reales: "Mezclar", "Hornear", "Añadir", etc.
+- Si no hay instrucciones visibles, genera pasos básicos SIN comentarios explicativos
+- Cada step debe ser una acción concreta de cocina
 
 IMÁGENES: Busca hasta 3 URLs de imágenes de comida
 
@@ -700,8 +739,7 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
           }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.1,
-        max_tokens: 4000
+        max_completion_tokens: 4000
       });
 
       console.log('\n✅ LLM RESPONSE RECEIVED');
@@ -756,7 +794,7 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
       return {
         title: cleanTitle,
         description: validatedData.description,
-        images: validatedData.images.filter(img => img.url && img.url.trim() !== ''), // filter out empty URLs
+        images: this.deduplicateImages(validatedData.images || []).filter(img => img.url && img.url.trim() !== ''), // filter out empty URLs and duplicates
         ingredients: validatedData.ingredients.map((ing, index) => ({
           ...ing,
           order: index + 1
@@ -796,12 +834,15 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
     }
   }
 
-  private buildExtractionPrompt(html: string): string {
+  private buildExtractionPrompt(html: string, sourceUrl?: string): string {
     // Truncate HTML if too long to avoid token limits
     const maxHtmlLength = 20000;
     const truncatedHtml = html.length > maxHtmlLength
       ? html.substring(0, maxHtmlLength) + '...[truncated]'
       : html;
+
+    // Check if this is a Cookidoo recipe
+    const isCookidoo = sourceUrl?.includes('cookidoo.international') || false;
 
     return `Analiza esta página web y busca CUALQUIER contenido relacionado con recetas de cocina.
 
@@ -825,6 +866,17 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
 - Si un paso tiene sub-pasos o detalles, inclúyelos completos
 - Verifica que no falten pasos en la secuencia (ej: si ves 1,2,4 busca el 3)
 - Mantén orden exacto y numeración como aparece
+
+${isCookidoo ? `
+🚨 COOKIDOO ESPECIAL - USO DE CONOCIMIENTO EXTERNO:
+Esta es una receta de Cookidoo.international. Si las instrucciones están vacías o incompletas en el HTML:
+- COMPLETA los pasos usando tu conocimiento de recetas Thermomix
+- Basándote en los ingredientes extraídos, proporciona los pasos de preparación típicos
+- Incluye tiempos, temperaturas y velocidades de Thermomix cuando sea apropiado
+- Ejemplo: "2 min / 90°C / vel 1" o "5 seg / vel 10"
+- Asegúrate de que sea una secuencia lógica de preparación
+- NO dejes las instrucciones vacías incluso si no aparecen claramente en el HTML
+` : ''}
 
 ⭐ IMÁGENES: Busca hasta 3 URLs de imágenes de comida/cocina.
 
@@ -905,8 +957,13 @@ IMPORTANTE - Busca y extrae información tanto VISUAL como TEXTUAL:
 - ICONOS de reloj/tiempo (⏰) para tiempos de preparación y cocción
 - ICONOS de personas/cubiertos (👥🍽️) para número de porciones
 - ICONOS de dificultad (⭐) o nivel de habilidad
-- IMÁGENES de platos terminados, ingredientes, pasos de preparación
+- IMÁGENES DE RECETAS: Fotos de platos terminados, ingredientes, pasos (NO incluir páginas completas)
 - LAYOUT y disposición visual para entender estructura de recetas
+
+🖼️ IMPORTANTE PARA IMÁGENES:
+- Si detectas UNA FOTO CLARA del plato terminado, marca hasImage: true
+- Si solo ves texto/página completa sin foto del plato, marca hasImage: false
+- NO uses thumbnails de páginas completas como imágenes de recetas
 
 📝 ELEMENTOS TEXTUALES A EXTRAER:
 - Títulos de recetas
@@ -923,7 +980,8 @@ IMPORTANTE - Busca y extrae información tanto VISUAL como TEXTUAL:
 
 🎯 CLASIFICACIÓN AUTOMÁTICA:
 - DIFFICULTY: Analiza complejidad de ingredientes e instrucciones ("Fácil", "Medio", "Difícil")
-- RECIPE_TYPE: Clasifica por tipo de plato ("Postre", "Plato Principal", "Aperitivo", "Bebida", "Acompañamiento", "Salsa", etc.)
+- RECIPE_TYPE: Clasifica por tipo de plato ("postre", "plato principal", "entrada", "bebida", "snack", "acompañamiento", "salsa")
+- TAGS: Genera 3-4 etiquetas relevantes basadas en ingredientes principales, técnica de cocción, dieta especial, etc.
 
 Responde SOLO con un JSON válido con este formato exacto:
 {
@@ -935,8 +993,10 @@ Responde SOLO con un JSON válido con este formato exacto:
       "cookTime": 45,
       "servings": 4,
       "hasImage": true,
+      "imageUrl": "recipe_photo_detected", // Si detectas foto del plato, usa este valor
       "difficulty": "Fácil",
-      "recipeType": "Postre",
+      "recipeType": "postre",
+      "tags": ["chocolate", "sin gluten", "vegano", "navidad"],
       "ingredients": [
         {"name": "naranja en rodajas para decorar", "amount": "1", "unit": ""},
         {"name": "edulcorante de fruta del monje", "amount": "140-155", "unit": "gramos"}
@@ -951,20 +1011,34 @@ Responde SOLO con un JSON válido con este formato exacto:
 }
 `;
 
-      // For now, use text-only approach while we debug multimodal issues
-      // TODO: Re-enable multimodal once API issue is resolved
-      console.log('⚠️ Using text-only analysis temporarily due to multimodal API issues');
+      // Build multimodal messages with page images
+      const messages: any[] = [
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'text',
+              text: prompt
+            },
+            ...pages.map(page => ({
+              type: 'image_url',
+              image_url: {
+                url: `data:image/jpeg;base64,${page.imageBase64}`,
+                detail: 'high'
+              }
+            }))
+          ]
+        }
+      ];
+
+      console.log(`🖼️ Sending ${pages.length} page images to GPT-4o-mini for multimodal analysis`);
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
-        messages: [
-          {
-            role: 'user',
-            content: `${prompt}\n\nNOTE: No visual content available for analysis. Extract recipes based on text content and page structure only.`
-          }
-        ],
-        temperature: 0.1,
-        max_tokens: 8000,
+        model: 'gpt-5-mini',
+        reasoning_effort: 'minimal',
+        verbosity: 'low',
+        messages,
+        max_completion_tokens: 8000,
         response_format: { type: 'json_object' }
       });
 
@@ -1033,6 +1107,8 @@ Para cada receta que encuentres, extrae:
 - Número de porciones (solo números)
 - Lista completa de ingredientes con cantidades exactas
 - Lista completa de instrucciones paso a paso
+- Tipo de receta (ej: "postre", "plato principal", "entrada", "bebida", "snack")
+- Etiquetas/tags relevantes (máximo 5)
 - Si hay referencias a imágenes embebidas, menciónalas en la descripción
 
 IMPORTANTE:
@@ -1041,6 +1117,7 @@ IMPORTANTE:
 - Incluye TODA la información disponible para cada receta
 - No inventes información que no esté en el documento
 - Si hay imágenes mencionadas o embebidas, inclúyelas en la descripción
+- Para recipe type y tags, infiere basándote en ingredientes y tipo de preparación
 
 Responde SOLO con un JSON válido con este formato exacto:
 {
@@ -1051,6 +1128,8 @@ Responde SOLO con un JSON válido con este formato exacto:
       "prepTime": 30,
       "cookTime": 45,
       "servings": 4,
+      "recipeType": "postre",
+      "tags": ["dulce", "sin gluten", "keto", "navidad"],
       "ingredients": [
         "1 naranja, más extra en rodajas para decorar",
         "140-155 gramos edulcorante de fruta del monje"
@@ -1068,10 +1147,11 @@ ${documentText}
 `;
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
+        reasoning_effort: 'minimal',
+        verbosity: 'low',
         messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
-        max_tokens: 8000,
+        max_completion_tokens: 8000,
         response_format: { type: 'json_object' }
       });
 
@@ -1132,16 +1212,18 @@ ${documentText}
       const prompt = this.buildTextExtractionPrompt(text, options);
 
       console.log('\n=== 🤖 TEXT EXTRACTION LLM REQUEST START ===');
-      console.log('🎯 Model: gpt-4o-mini');
+      console.log('🎯 Model: gpt-5-mini');
       console.log('🌡️ Temperature: 0.1');
       console.log('📄 Max Tokens: 4000');
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
+        reasoning_effort: 'minimal',
+        verbosity: 'low',
         messages: [
           {
             role: 'system',
-            content: `Eres un extractor de recetas especializado en procesar contenido de documentos Word.
+            content: `Eres un extractor de recetas especializado en procesar contenido de documentos Word. Extrae información directamente sin análisis prolongado.
 
 TAREA: Extraer UNA receta completa del texto proporcionado.
 
@@ -1162,8 +1244,7 @@ Si el texto no contiene una receta válida, responde: {"error": true}`
           }
         ],
         response_format: { type: 'json_object' },
-        temperature: 0.1,
-        max_tokens: 4000
+        max_completion_tokens: 4000
       });
 
       console.log('\n✅ LLM RESPONSE RECEIVED');
@@ -1263,19 +1344,20 @@ Si el texto no contiene una receta válida, responde: {"error": true}`
       console.log('📏 Prompt length:', prompt.length, 'characters');
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: 'gpt-5-mini',
+        reasoning_effort: 'minimal',
+        verbosity: 'low',
         messages: [
           {
             role: 'system',
-            content: 'Eres un asistente especializado en cocina que ayuda a generar scripts naturales y conversacionales para recetas.'
+            content: 'Eres un asistente especializado en cocina que ayuda a generar scripts naturales y conversacionales para recetas. Responde directamente sin demoras.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.7,
-        max_tokens: 2000
+        max_completion_tokens: 2000
       });
 
       const content = completion.choices[0]?.message?.content;
@@ -1359,5 +1441,436 @@ ${contextHint}${titleHint}
 
 TEXTO A PROCESAR:
 ${truncatedText}`;
+  }
+
+  /**
+   * Calculate nutritional information for a recipe based on ingredients and servings
+   */
+  async calculateNutrition(ingredients: Array<{name: string; amount: string; unit?: string}>, servings: number = 4): Promise<{
+    success: boolean;
+    nutrition?: {
+      calories: number;
+      protein: number;
+      carbohydrates: number;
+      fat: number;
+      fiber: number;
+      sugar: number;
+      sodium: number;
+    };
+    error?: string;
+  }> {
+    try {
+      console.log('🥗 Starting nutrition calculation...');
+      console.log('📊 Ingredients count:', ingredients.length);
+      console.log('🍽️ Servings:', servings);
+
+      const ingredientsList = ingredients.map(ing =>
+        `${ing.amount} ${ing.unit || ''} ${ing.name}`.trim()
+      ).join('\n');
+
+      const prompt = `Calcula la información nutricional de esta receta con la mayor precisión posible.
+
+INGREDIENTES DE LA RECETA (${servings} porciones):
+${ingredientsList}
+
+INSTRUCCIONES:
+1. Para cada ingrediente, calcula: calorías, grasa total, sodio, carbohidratos totales, fibra, azúcares y proteína en la cantidad estipulada
+2. Suma todos los valores para obtener el total de la receta
+3. Divide el resultado entre ${servings} porciones para obtener valores por porción
+
+IMPORTANTE - Estimaciones para ingredientes "al gusto":
+- Si no hay cantidad específica o dice "al gusto", haz una estimación realista:
+  * Sal: ~1 cucharadita (5g) para platos salados
+  * Pimienta: ~1/4 cucharadita (0.5g)
+  * Azúcar: ~1-2 cucharaditas (5-10g) para postres
+  * Aceite para cocinar: ~1-2 cucharadas (15-30ml)
+  * Especias secas: ~1/2 cucharadita (1-2g)
+  * Hierbas frescas: ~1 cucharada (3-5g)
+
+Responde SOLO con JSON, valores POR PORCIÓN:
+{
+  "calories": [número],
+  "protein": [número],
+  "carbohydrates": [número],
+  "fat": [número],
+  "fiber": [número],
+  "sugar": [número],
+  "sodium": [número]
+}`;
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-5-mini',
+        reasoning_effort: 'minimal',
+        verbosity: 'low',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un nutricionista experto. Utiliza tu conocimiento nutricional para calcular valores precisos y realistas. Responde rápidamente en JSON válido sin razonamiento extenso.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_completion_tokens: 500,
+        response_format: { type: "json_object" }
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      console.log('📦 Raw nutrition response:', content);
+
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(content);
+      } catch (parseError) {
+        console.error('❌ JSON parse error:', parseError);
+        throw new Error('Invalid JSON response from AI');
+      }
+
+      // Validate required nutritional fields
+      const requiredFields = ['calories', 'protein', 'carbohydrates', 'fat', 'fiber', 'sugar', 'sodium'];
+      for (const field of requiredFields) {
+        if (typeof parsedResponse[field] !== 'number') {
+          throw new Error(`Missing or invalid ${field} in nutrition response`);
+        }
+      }
+
+      console.log('✅ Nutrition calculation successful');
+      console.log('📊 Calculated nutrition per serving:', parsedResponse);
+
+      return {
+        success: true,
+        nutrition: {
+          calories: Math.round(parsedResponse.calories * 10) / 10,
+          protein: Math.round(parsedResponse.protein * 10) / 10,
+          carbohydrates: Math.round(parsedResponse.carbohydrates * 10) / 10,
+          fat: Math.round(parsedResponse.fat * 10) / 10,
+          fiber: Math.round(parsedResponse.fiber * 10) / 10,
+          sugar: Math.round(parsedResponse.sugar * 10) / 10,
+          sodium: Math.round(parsedResponse.sodium)
+        }
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error in nutrition calculation:', error);
+      return {
+        success: false,
+        error: error.message || 'Error al calcular información nutricional'
+      };
+    }
+  }
+
+  /**
+   * Search for real recipes using AI with natural language queries
+   */
+  async searchRecipesWithAI(query: string, count: number = 3, offset: number = 0): Promise<{ success: boolean; recipes: any[]; error?: string; hasMore?: boolean }> {
+    try {
+      console.log('🔍 Starting AI recipe search...');
+      console.log('📝 Query:', query);
+      console.log('📊 Count:', count, 'Offset:', offset);
+
+      const offsetInstruction = offset > 0
+        ? `IMPORTANTE: Esta es una búsqueda de continuación (offset: ${offset}). Busca recetas DIFERENTES y NUEVAS que no habrías mostrado en búsquedas anteriores de la misma consulta. Varía los sitios web y tipos de recetas.`
+        : '';
+
+      const prompt = `Busca ${count} recetas reales que coincidan con: "${query}"
+
+${offsetInstruction}
+
+INSTRUCCIONES CRUCIALES:
+- Busca recetas EXISTENTES en sitios web reales de cocina
+- Incluye la URL REAL y verificable de donde encontraste cada receta
+- Extrae todos los datos completos de esas recetas originales
+- NO inventes URLs, utiliza fuentes reales y conocidas
+
+🖼️ IMÁGENES - MUY IMPORTANTE:
+- Para cada receta, busca SOLO URLs de imágenes que sean públicamente accesibles
+- Usa ÚNICAMENTE estas fuentes confiables:
+  * Unsplash: https://images.unsplash.com/photo-[ID]?w=800
+  * Pexels: https://images.pexels.com/photos/[ID]/[description].jpeg
+  * Pixabay: https://cdn.pixabay.com/photo/[year]/[month]/[day]/[ID].jpg
+- EJEMPLOS DE URLs REALES QUE FUNCIONAN:
+  * Pasta: "https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=800"
+  * Pizza: "https://images.unsplash.com/photo-1574071318508-1cdbab80d002?w=800"
+  * Ensalada: "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800"
+  * Pollo: "https://images.unsplash.com/photo-1606728035253-49e8a23146de?w=800"
+- Si no puedes encontrar una imagen apropiada, déjalo VACÍO (no inventes URLs)
+
+🚨 IMPORTANTE PARA URLs:
+- TODAS las URLs deben comenzar con "https://"
+- NO uses URLs incompletas o relativas
+- Verifica que el formato sea correcto: https://sitio.com/ruta-completa
+- Ejemplos de URLs válidas:
+  • https://www.recetasgratis.net/receta-de-flan-de-coco-72345.html
+  • https://cookpad.com/es/recetas/8765432-tarta-de-chocolate
+  • https://www.allrecipes.com/recipe/123456/chocolate-cake
+
+🍎 INFORMACIÓN NUTRICIONAL OBLIGATORIA:
+- Calcula los valores nutricionales POR PORCIÓN basándote en los ingredientes
+- Usa tu conocimiento nutricional para estimar valores realistas
+- Incluye: calorías, proteínas (g), carbohidratos (g), grasas (g), fibra (g), azúcar (g), sodio (mg)
+- Sé preciso: los valores deben ser coherentes con los ingredientes y cantidades
+- Ejemplo: 100g de pollo = ~165 cal, 31g proteína, 0g carbohidratos, 3.6g grasa
+
+🤖 CONFIGURACIONES THERMOMIX (cuando aplique):
+- Si la receta es compatible con Thermomix o proviene de un sitio Thermomix, incluye configuraciones por paso:
+- time: tiempo de procesamiento (ej: "30 sec", "2 min", "5 min")
+- temperature: temperatura de cocción (ej: "80°C", "100°C", "Varoma", "sin temperatura")
+- speed: velocidad del robot (ej: "3", "5", "7", "10", "Mariposa", "Turbo")
+- Si un paso NO requiere Thermomix, puedes omitir thermomixSettings o usar valores null
+- Solo incluye estos datos si la receta original los menciona o es claramente adaptable a Thermomix
+
+Responde ÚNICAMENTE con JSON válido en este formato:
+{
+  "recipes": [
+    {
+      "title": "Título exacto de la receta encontrada",
+      "description": "Descripción original del sitio web",
+      "sourceUrl": "https://sitio-real.com/url-completa-de-la-receta",
+      "siteName": "Nombre del sitio web",
+      "foundAt": "${new Date().toISOString().split('T')[0]}",
+      "images": [
+        {
+          "url": "https://images.unsplash.com/photo-1567620905732-2d1ec7ab7445?w=800",
+          "altText": "Imagen del plato terminado"
+        }
+      ],
+      "ingredients": [
+        {
+          "name": "nombre del ingrediente",
+          "amount": "cantidad",
+          "unit": "unidad de medida"
+        }
+      ],
+      "instructions": [
+        {
+          "step": 1,
+          "description": "descripción completa del paso",
+          "thermomixSettings": {
+            "time": "tiempo en segundos o minutos (ej: '30 sec', '2 min')",
+            "temperature": "temperatura en grados (ej: '80°C', 'Varoma')",
+            "speed": "velocidad del 1-10 o especial (ej: '5', 'Mariposa')"
+          }
+        }
+      ],
+      "prepTime": 30,
+      "cookTime": 25,
+      "servings": 4,
+      "difficulty": "Fácil",
+      "recipeType": "Tipo de receta",
+      "tags": ["etiquetas", "relevantes", "de", "la", "receta"],
+      "nutritionalInfo": {
+        "calories": 250,
+        "protein": 12.5,
+        "carbohydrates": 35.0,
+        "fat": 8.2,
+        "fiber": 4.1,
+        "sugar": 6.5,
+        "sodium": 480
+      }
+    }
+  ]
+}
+
+NO agregues explicaciones antes o después del JSON. Responde solo con el JSON válido.`;
+
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-5-mini',
+        reasoning_effort: 'minimal',
+        verbosity: 'low',
+        messages: [
+          {
+            role: 'system',
+            content: 'Eres un asistente experto en búsqueda de recetas que puede encontrar recetas reales en sitios web de cocina conocidos. Responde rápidamente con JSON válido sin análisis prolongado.'
+          },
+          {
+            role: 'user',
+            content: prompt
+          }
+        ],
+        max_completion_tokens: 4000,
+        response_format: { type: "json_object" }
+      });
+
+      const content = completion.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('Empty response from OpenAI');
+      }
+
+      console.log('📦 Raw AI response length:', content.length);
+
+      let parsedResponse;
+      try {
+        parsedResponse = JSON.parse(content);
+      } catch (parseError) {
+        console.error('❌ JSON parse error:', parseError);
+        throw new Error('Invalid JSON response from AI');
+      }
+
+      // Validate that we have recipes
+      if (!parsedResponse.recipes || !Array.isArray(parsedResponse.recipes)) {
+        throw new Error('Invalid response format: missing recipes array');
+      }
+
+      // Basic validation for each recipe
+      const validatedRecipes = parsedResponse.recipes
+        .filter((recipe: any) => {
+          return recipe.title &&
+                 recipe.sourceUrl &&
+                 recipe.ingredients &&
+                 Array.isArray(recipe.ingredients) &&
+                 recipe.instructions &&
+                 Array.isArray(recipe.instructions);
+        })
+        .map((recipe: any) => ({
+          ...recipe,
+          // Ensure required fields have defaults
+          description: recipe.description || 'Descripción no disponible',
+          prepTime: recipe.prepTime || 30,
+          servings: recipe.servings || 4,
+          difficulty: recipe.difficulty || 'Medio',
+          tags: recipe.tags || [],
+          images: recipe.images || [],
+          siteName: recipe.siteName || new URL(recipe.sourceUrl).hostname,
+          foundAt: recipe.foundAt || new Date().toISOString().split('T')[0]
+        }));
+
+      console.log('✅ AI recipe search successful');
+      console.log('📊 Found recipes:', validatedRecipes.length);
+
+      if (validatedRecipes.length === 0) {
+        return {
+          success: false,
+          recipes: [],
+          error: 'No se encontraron recetas válidas para la consulta'
+        };
+      }
+
+      return {
+        success: true,
+        recipes: validatedRecipes,
+        hasMore: true // Siempre hay más recetas posibles
+      };
+
+    } catch (error: any) {
+      console.error('❌ Error in AI recipe search:', error);
+      return {
+        success: false,
+        recipes: [],
+        error: error.message || 'Error al buscar recetas con IA'
+      };
+    }
+  }
+
+  private deduplicateImages(images: any[]): any[] {
+    const seen = new Set<string>();
+    const unique: any[] = [];
+
+    for (const image of images) {
+      if (!image?.url) continue;
+
+      // Normalize URL for comparison (remove protocol, query params, etc.)
+      const normalizedUrl = image.url
+        .toLowerCase()
+        .replace(/^https?:\/\//, '')
+        .replace(/[?#].*$/, '');
+
+      if (!seen.has(normalizedUrl)) {
+        seen.add(normalizedUrl);
+        unique.push({
+          ...image,
+          order: unique.length + 1 // Reorder after deduplication
+        });
+      }
+    }
+
+    console.log(`🖼️ Images deduplication: ${images.length} → ${unique.length}`);
+    return unique;
+  }
+
+  private isCookidooLoginPage(htmlContent: string): boolean {
+    const loginIndicators = [
+      'Un mundo de recetas Thermomix®',
+      'Accede a Cookidoo®',
+      'Iniciar sesión',
+      'Log in to Cookidoo',
+      'Please sign in',
+      'authentication required',
+      'login-form',
+      'signin-form',
+      'cookidoo-login',
+      'data-testid="login"',
+      'class="login-page"',
+      'id="loginForm"',
+      'Inicia sesión en tu cuenta',
+      'Sign in to your account',
+      'Cookidoo® es la plataforma',
+      'subscription required',
+      'premium content',
+      'members only',
+      'exclusive content'
+    ];
+
+    const lowerHtml = htmlContent.toLowerCase();
+
+    for (const indicator of loginIndicators) {
+      if (lowerHtml.includes(indicator.toLowerCase())) {
+        console.log(`🔍 Login indicator found: "${indicator}"`);
+        return true;
+      }
+    }
+
+    // Check for generic Cookidoo landing page content (usually indicates no access)
+    const genericIndicators = [
+      'miles de recetas exclusivas',
+      'thousands of exclusive recipes',
+      'recetas paso a paso',
+      'step-by-step recipes',
+      'guías de cocina',
+      'cooking guides'
+    ];
+
+    for (const indicator of genericIndicators) {
+      if (lowerHtml.includes(indicator.toLowerCase())) {
+        console.log(`🔍 Generic content indicator found: "${indicator}"`);
+        return true;
+      }
+    }
+
+    // Check if we have actual recipe content indicators
+    const recipeContentIndicators = [
+      'ingredientes:',
+      'ingredients:',
+      'preparación:',
+      'preparation:',
+      'instrucciones:',
+      'instructions:',
+      'tiempo de preparación',
+      'preparation time',
+      'porciones:',
+      'servings:',
+      'recipe-ingredients',
+      'recipe-instructions'
+    ];
+
+    let hasRecipeContent = false;
+    for (const indicator of recipeContentIndicators) {
+      if (lowerHtml.includes(indicator.toLowerCase())) {
+        hasRecipeContent = true;
+        break;
+      }
+    }
+
+    if (!hasRecipeContent) {
+      console.log('🔍 No recipe content indicators found - likely a login/generic page');
+      return true;
+    }
+
+    console.log('✅ Recipe content detected - page appears to be accessible');
+    return false;
   }
 }

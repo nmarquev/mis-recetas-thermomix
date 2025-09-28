@@ -129,7 +129,7 @@ export const RecipeReviewer = ({
                     <div className="flex-shrink-0 w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center text-xs font-semibold text-primary">
                       {index + 1}
                     </div>
-                    <span>{instruction}</span>
+                    <span>{typeof instruction === 'string' ? instruction : instruction.description || JSON.stringify(instruction)}</span>
                   </div>
                 ))}
               </div>
