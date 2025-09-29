@@ -76,11 +76,9 @@ export const NutritionModal = ({ recipe, isOpen, onClose, onRecipeUpdate }: Nutr
               instructions: updatedRecipe.instructions.map(inst => ({
                 step: inst.step,
                 description: inst.description,
-                thermomixSettings: {
-                  time: inst.thermomixSettings?.time || "",
-                  temperature: inst.thermomixSettings?.temperature || "",
-                  speed: inst.thermomixSettings?.speed || ""
-                }
+                time: inst.thermomixSettings?.time || "",
+                temperature: inst.thermomixSettings?.temperature || "",
+                speed: inst.thermomixSettings?.speed || ""
               })),
               tags: updatedRecipe.tags
             };

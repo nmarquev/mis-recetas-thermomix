@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>TasteBox Auth Bridge</title>
+</head>
+<body>
+    <script>
+        // This page serves as a bridge to access localStorage from the TasteBox domain
+        console.log('🌉 Auth Bridge loaded');
+        console.log('🌐 Origin:', window.location.origin);
+        console.log('👨‍👩‍👧‍👦 Parent window:', window.parent !== window ? 'Present' : 'None');
+
+        try {
+            const authToken = localStorage.getItem('auth_token');
+            const thermomixUser = localStorage.getItem('thermomix_user');
+
+            console.log('🎫 Auth token found:', authToken ? `${authToken.substring(0, 20)}...` : 'None');
+            console.log('👤 User data found:', thermomixUser ? 'Yes' : 'No');
+
+            // Send the token back to the parent window
+            if (window.parent && window.parent !== window) {
+                console.log('📤 Sending token to parent window');
+                window.parent.postMessage({
+                    type: 'AUTH_TOKEN',
+                    token: authToken
+                }, '*');
+            } else {
+                console.log('❌ No parent window to send token to');
+            }
+        } catch (error) {
+            console.error('❌ Error in auth bridge:', error);
+            // If there's an error, send null token
+            if (window.parent && window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'AUTH_TOKEN',
+                    token: null
+                }, '*');
+            }
+        }
+    </script>
+</body>
+</html>

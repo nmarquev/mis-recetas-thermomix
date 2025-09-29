@@ -32,7 +32,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Both user data and token must exist for a valid session
     if (savedUser && authToken) {
       try {
-        setUser(JSON.parse(savedUser));
+        const userData = JSON.parse(savedUser);
+        setUser(userData);
+
+        // If this window was opened by bookmarklet, notify parent window
+        checkBookmarkletLogin();
       } catch (error) {
         console.error('Error parsing saved user data:', error);
         // Clear invalid data
@@ -47,6 +51,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(false);
   }, []);
 
+  // Function to check if this is a bookmarklet login and notify parent
+  const checkBookmarkletLogin = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isBookmarklet = urlParams.get('bookmarklet') === 'true';
+
+    if (isBookmarklet && window.opener) {
+      console.log('🔖 Detected bookmarklet login, notifying parent window...');
+
+      // Send message to parent window (bookmarklet)
+      try {
+        window.opener.postMessage({
+          type: 'TASTEBOX_LOGIN_SUCCESS',
+          timestamp: Date.now()
+        }, '*');
+
+        console.log('✅ Login success message sent to bookmarklet');
+
+        // Close this window after a short delay
+        setTimeout(() => {
+          window.close();
+        }, 2000);
+
+      } catch (error) {
+        console.error('Error sending message to parent window:', error);
+      }
+    }
+  };
+
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
 
@@ -55,6 +87,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = { id: response.user.id, email: response.user.email, name: response.user.name, alias: response.user.alias, profilePhoto: response.user.profilePhoto };
       setUser(userData);
       localStorage.setItem('thermomix_user', JSON.stringify(userData));
+
+      // Check if this login should notify bookmarklet
+      checkBookmarkletLogin();
+
       setIsLoading(false);
       return true;
     } catch (error) {
@@ -72,6 +108,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const userData = { id: response.user.id, email: response.user.email, name: response.user.name, alias: response.user.alias, profilePhoto: response.user.profilePhoto };
       setUser(userData);
       localStorage.setItem('thermomix_user', JSON.stringify(userData));
+
+      // Check if this registration should notify bookmarklet
+      checkBookmarkletLogin();
+
       setIsLoading(false);
       return true;
     } catch (error) {

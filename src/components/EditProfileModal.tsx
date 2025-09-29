@@ -8,6 +8,7 @@ import { User, Mail, Tag, Lock, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/services/api";
 import { ProfilePhotoUpload } from "./ProfilePhotoUpload";
+import { getServerBaseUrl } from "@/utils/api";
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -156,7 +157,7 @@ export const EditProfileModal = ({ isOpen, onClose }: EditProfileModalProps) => 
           <div className="space-y-2">
             <Label>Foto de perfil</Label>
             <ProfilePhotoUpload
-              currentPhotoUrl={user?.profilePhoto ? `http://localhost:3002${user.profilePhoto}` : undefined}
+              currentPhotoUrl={user?.profilePhoto ? `${getServerBaseUrl()}${user.profilePhoto}` : undefined}
               onPhotoUpdate={handlePhotoUpdate}
             />
           </div>

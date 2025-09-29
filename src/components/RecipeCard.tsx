@@ -7,6 +7,9 @@ import { Recipe } from "@/types/recipe";
 import { resolveImageUrl } from "@/utils/api";
 import { isThermomixRecipe } from "@/utils/recipeUtils";
 import { getSiteName, isValidUrl } from "@/utils/siteUtils";
+import { downloadRecipePdf, printRecipePdf, shareRecipePdf } from "@/utils/pdfUtils";
+import { useState } from "react";
+import { toast } from "sonner";
 
 interface RecipeCardProps {
   recipe: Recipe;
@@ -22,12 +25,37 @@ interface RecipeCardProps {
 }
 
 export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite, onPlayTTS, onShowNutrition, columns = 3, isPlayingTTS = false, isGeneratingScript = false }: RecipeCardProps) => {
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
       case "Fácil": return "bg-secondary text-secondary-foreground";
       case "Medio": return "bg-accent text-accent-foreground";
       case "Difícil": return "bg-primary text-primary-foreground";
       default: return "bg-muted text-muted-foreground";
+    }
+  };
+
+  const handlePdfAction = async (action: 'share' | 'print' | 'download') => {
+    setIsPdfLoading(true);
+    try {
+      switch (action) {
+        case 'share':
+          await shareRecipePdf(recipe);
+          toast.success('PDF compartido exitosamente');
+          break;
+        case 'print':
+          await printRecipePdf(recipe);
+          toast.success('Enviando a imprimir...');
+          break;
+        case 'download':
+          await downloadRecipePdf(recipe);
+          toast.success('PDF descargado exitosamente');
+          break;
+      }
+    } catch (error) {
+      toast.error(error.message || 'Error al procesar el PDF');
+    } finally {
+      setIsPdfLoading(false);
     }
   };
 
@@ -51,7 +79,7 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite,
 
   return (
     <Card className="group overflow-hidden bg-gradient-card shadow-recipe-card hover:shadow-elegant transition-all duration-300 hover:-translate-y-1">
-      <div className="relative overflow-hidden">
+      <div className="relative overflow-hidden cursor-pointer" onClick={() => onView(recipe)}>
         {primaryImage ? (
           <img
             src={resolveImageUrl(primaryImage.url)}
@@ -105,17 +133,26 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite,
                     Ver en {getSiteName(recipe.sourceUrl)}
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={() => {}}>
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  handlePdfAction('share');
+                }} disabled={isPdfLoading}>
                   <Share className="h-4 w-4 mr-2" />
-                  Compartir
+                  {isPdfLoading ? 'Generando...' : 'Compartir'}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {}}>
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  handlePdfAction('print');
+                }} disabled={isPdfLoading}>
                   <Printer className="h-4 w-4 mr-2" />
-                  Imprimir
+                  {isPdfLoading ? 'Generando...' : 'Imprimir'}
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => {}}>
+                <DropdownMenuItem onClick={(e) => {
+                  e.stopPropagation();
+                  handlePdfAction('download');
+                }} disabled={isPdfLoading}>
                   <Download className="h-4 w-4 mr-2" />
-                  Descargar
+                  {isPdfLoading ? 'Generando...' : 'Descargar'}
                 </DropdownMenuItem>
                 {onEdit && (
                   <DropdownMenuItem onClick={() => onEdit(recipe)}>

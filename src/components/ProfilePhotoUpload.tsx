@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Camera, Upload, X, RotateCw } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { getApiBaseUrl } from '@/utils/api';
 
 interface ProfilePhotoUploadProps {
   currentPhotoUrl?: string;
@@ -190,7 +191,7 @@ export const ProfilePhotoUpload = ({ currentPhotoUrl, onPhotoUpdate }: ProfilePh
       formData.append('profilePhoto', croppedBlob, 'profile.jpg');
 
       // Upload to server
-      const response = await fetch('http://localhost:3002/api/upload/profile-photo', {
+      const response = await fetch(`${getApiBaseUrl()}/upload/profile-photo`, {
         method: 'POST',
         body: formData,
         headers: {

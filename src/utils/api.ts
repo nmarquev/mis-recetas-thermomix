@@ -1,14 +1,6 @@
 // Utility function to get the base server URL
 export const getServerBaseUrl = (): string => {
-  const currentHost = window.location.hostname;
-
-  // If accessing via IP address (like 192.168.0.10), use the same IP for backend
-  if (currentHost !== 'localhost' && currentHost !== '127.0.0.1') {
-    return `http://${currentHost}:3002`;
-  }
-
-  // Default to localhost
-  return 'http://localhost:3002';
+  return 'https://localhost:3006';
 };
 
 // Utility function to get the API base URL

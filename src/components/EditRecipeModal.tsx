@@ -222,11 +222,9 @@ export const EditRecipeModal = ({ isOpen, onClose, recipe, onRecipeUpdated }: Ed
         instructions: data.instructions.map((inst, index) => ({
           step: index + 1,
           description: inst.description,
-          thermomixSettings: {
-            time: inst.time || "",
-            temperature: inst.temperature || "",
-            speed: inst.speed || ""
-          }
+          time: inst.time || "",
+          temperature: inst.temperature || "",
+          speed: inst.speed || ""
         }))
       };
 

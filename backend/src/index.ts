@@ -3,6 +3,8 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import path from 'path';
+import https from 'https';
+import fs from 'fs';
 
 // Load environment variables
 dotenv.config();
@@ -19,6 +21,8 @@ import llmRoutes from './routes/llm';
 import profilePhotoRoutes from './routes/profilePhoto';
 import imageProxyRoutes from './routes/imageProxy';
 import nutritionRoutes from './routes/nutrition';
+import pdfRoutes from './routes/pdf';
+import testPdfRoutes from './routes/testPdf';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -28,39 +32,10 @@ app.use(helmet());
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
     ? ['https://your-domain.com']
-    : (origin, callback) => {
-        // Permitir sin origin (ej. aplicaciones móviles)
-        if (!origin) return callback(null, true);
-
-        // Permitir localhost en diferentes puertos
-        if (origin.match(/^http:\/\/localhost:\d+$/)) {
-          return callback(null, true);
-        }
-
-        // Permitir toda la red local 192.168.0.x (puerto 8080-8089)
-        if (origin.match(/^http:\/\/192\.168\.0\.\d+:808[0-9]$/)) {
-          return callback(null, true);
-        }
-
-        // Permitir red local 172.x (Docker/WSL) (puerto 8080-8089)
-        if (origin.match(/^http:\/\/172\.\d+\.\d+\.\d+:808[0-9]$/)) {
-          return callback(null, true);
-        }
-
-        // Permitir red local 10.x (otra red común) (puerto 8080-8089)
-        if (origin.match(/^http:\/\/10\.\d+\.\d+\.\d+:808[0-9]$/)) {
-          return callback(null, true);
-        }
-
-        // Permitir Cookidoo para el bookmarklet
-        if (origin && origin.match(/^https:\/\/cookidoo\.(es|com|de|fr|it)$/)) {
-          return callback(null, true);
-        }
-
-        // Rechazar otros orígenes
-        callback(new Error('Not allowed by CORS'));
-      },
-  credentials: true
+    : true, // Permitir todo en desarrollo
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -74,8 +49,23 @@ app.use('/uploads', (req, res, next) => {
   next();
 }, express.static(path.join(__dirname, '../uploads')));
 
-// Health check
+// Serve bookmarklet script with CORS headers
+app.use('/bookmarklet', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.header('Content-Type', 'application/javascript');
+  next();
+}, express.static(path.join(__dirname, '../public/bookmarklet')));
+
+// Health check with CORS headers for bookmarklet
 app.get('/health', (req, res) => {
+  // Agregar headers CORS específicos para bookmarklet
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
@@ -91,6 +81,23 @@ app.use('/api/llm', llmRoutes);
 app.use('/api/upload', profilePhotoRoutes);
 app.use('/api/proxy', imageProxyRoutes);
 app.use('/api/nutrition', nutritionRoutes);
+app.use('/api/pdf', pdfRoutes);
+app.use('/api/test', testPdfRoutes);
+
+// Health endpoint for bookmarklet server detection
+app.get('/api/health', (req, res) => {
+  // Agregar headers CORS específicos para bookmarklet
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+
+  res.json({
+    status: 'ok',
+    service: 'TasteBox Recipe API',
+    timestamp: new Date().toISOString(),
+    version: '2.0.0'
+  });
+});
 
 // Error handling middleware
 app.use((error: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -114,9 +121,44 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(Number(PORT), '0.0.0.0', () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 Server accessible on all network interfaces`);
-  console.log(`📁 Upload directory: ${process.env.UPLOAD_DIR || './uploads'}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+// SSL Configuration
+const isSSLEnabled = process.env.SSL_ENABLED !== 'false'; // Default to true
+let server;
+
+if (isSSLEnabled) {
+  try {
+    const privateKey = fs.readFileSync(path.join(__dirname, '../ssl/tastebox-local-key.pem'), 'utf8');
+    const certificate = fs.readFileSync(path.join(__dirname, '../ssl/tastebox-local-cert.pem'), 'utf8');
+
+    const httpsOptions = {
+      key: privateKey,
+      cert: certificate
+    };
+
+    server = https.createServer(httpsOptions, app);
+    server.listen(Number(PORT), '0.0.0.0', () => {
+      console.log(`🔒 HTTPS Server running on port ${PORT}`);
+      console.log(`🌐 Server accessible on all network interfaces`);
+      console.log(`📁 Upload directory: ${process.env.UPLOAD_DIR || './uploads'}`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`🔐 SSL Certificate: localhost-cert.pem`);
+      console.log(`🔑 Access URLs:`);
+      console.log(`   - https://localhost:${PORT}`);
+      console.log(`   - https://127.0.0.1:${PORT}`);
+      console.log(`   - https://192.168.0.10:${PORT}`);
+    });
+  } catch (error) {
+    console.error('❌ SSL Certificate not found, falling back to HTTP:', error.message);
+    server = app.listen(Number(PORT), '0.0.0.0', () => {
+      console.log(`🚀 HTTP Server running on port ${PORT} (SSL disabled)`);
+      console.log(`🌐 Server accessible on all network interfaces`);
+    });
+  }
+} else {
+  server = app.listen(Number(PORT), '0.0.0.0', () => {
+    console.log(`🚀 HTTP Server running on port ${PORT} (SSL disabled)`);
+    console.log(`🌐 Server accessible on all network interfaces`);
+    console.log(`📁 Upload directory: ${process.env.UPLOAD_DIR || './uploads'}`);
+    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+}

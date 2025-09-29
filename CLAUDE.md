@@ -87,12 +87,27 @@
 - ✅ Cleanup automático de archivos temporales
 - ✅ Validación de tipos TypeScript estricta
 - ✅ Error boundaries y fallbacks
+- ✅ Sistema de cálculo nutricional automático funcional
 
 **Mejoras específicas:**
 - Cambio de `.optional().nullable().transform()` a `.nullable().optional()`
 - Conversión de `null` a `''` en processing
 - Manejo de arrays vacíos en tags e ingredients
 - Timeouts para operaciones de larga duración
+- **FIX**: Validación `recipeType` para aceptar valores `null` en actualizaciones automáticas de nutrición
+
+### **6. Sistema de Cálculo Nutricional**
+- ✅ Cálculo automático de información nutricional con LLM
+- ✅ Modal de información nutricional con etiqueta FDA-style
+- ✅ Integración transparente en actualización de recetas
+- ✅ Manejo robusto de datos nutricionales opcionales
+- ✅ Validación backend corregida para campos nullable
+
+**Archivos clave:**
+- `src/components/NutritionModal.tsx` - Modal principal con auto-cálculo
+- `src/components/NutritionLabel.tsx` - Etiqueta nutricional estilo FDA
+- `src/hooks/useNutritionCalculator.ts` - Hook para cálculos LLM
+- `backend/src/routes/recipes.ts` - Validación Zod corregida (líneas 17, 61)
 
 ---
 

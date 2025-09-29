@@ -14,7 +14,7 @@ const createRecipeSchema = z.object({
   cookTime: z.number().optional().nullable(),
   servings: z.number().min(1),
   difficulty: z.enum(['Fácil', 'Medio', 'Difícil']),
-  recipeType: z.string().optional(),
+  recipeType: z.string().optional().nullable(),
   sourceUrl: z.string().url().optional(),
 
   // Nutritional information (optional)
@@ -58,7 +58,7 @@ const updateRecipeSchema = z.object({
   cookTime: z.number().optional().nullable(),
   servings: z.number().min(1),
   difficulty: z.enum(['Fácil', 'Medio', 'Difícil']),
-  recipeType: z.string().optional(),
+  recipeType: z.string().optional().nullable(),
   sourceUrl: z.string().url().optional(),
 
   // Nutritional information (optional)
@@ -308,8 +308,16 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
     console.log('📝 Request body keys:', Object.keys(req.body));
     console.log('📝 Ingredients count:', req.body.ingredients?.length);
     console.log('📝 Instructions count:', req.body.instructions?.length);
+    console.log('📝 Has nutrition data:', {
+      calories: req.body.calories !== undefined,
+      protein: req.body.protein !== undefined,
+      carbohydrates: req.body.carbohydrates !== undefined,
+      fat: req.body.fat !== undefined
+    });
 
+    console.log('📝 Validating request body...');
     const data = updateRecipeSchema.parse(req.body);
+    console.log('📝 Validation successful!');
 
     // Check if recipe belongs to user
     const existingRecipe = await prisma.recipe.findFirst({

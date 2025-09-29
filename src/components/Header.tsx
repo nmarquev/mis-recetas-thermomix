@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Download, User, LogOut, Settings, FileText, Volume2, Sparkles } from "lucide-react";
+import { Search, Plus, Download, User, LogOut, Settings, FileText, Volume2, Sparkles, Bookmark } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { DocxImportModal } from "@/components/DocxImportModal";
@@ -17,6 +17,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { VoiceSettingsModal } from "@/components/VoiceSettingsModal";
+import { BookmarkletInstallModal } from "@/components/BookmarkletInstallModal";
+import { getServerBaseUrl } from "@/utils/api";
 
 interface HeaderProps {
   onAddRecipe: () => void;
@@ -37,9 +39,14 @@ export const Header = ({
   const [isPdfImportModalOpen, setIsPdfImportModalOpen] = useState(false);
   const [isVoiceSettingsModalOpen, setIsVoiceSettingsModalOpen] = useState(false);
   const [isIntelligentSearchModalOpen, setIsIntelligentSearchModalOpen] = useState(false);
+  const [isBookmarkletInstallModalOpen, setIsBookmarkletInstallModalOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
+  };
+
+  const handleOpenBookmarklet = () => {
+    setIsBookmarkletInstallModalOpen(true);
   };
 
   const getUserInitials = (name: string) => {
@@ -70,7 +77,7 @@ export const Header = ({
                 title="Búsqueda Inteligente con IA"
               >
                 <Sparkles className="h-4 w-4 text-orange-600 animate-pulse" />
-                <span className="hidden sm:inline text-orange-700 font-medium">IA</span>
+                <span className="hidden sm:inline text-orange-700 font-medium">Buscador Inteligente</span>
               </Button>
 
               <DropdownMenu>
@@ -87,7 +94,7 @@ export const Header = ({
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={onImportRecipe}>
                     <Download className="mr-2 h-4 w-4" />
-                    Online
+                    URL (web, instagram, youtube, etc.)
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsDocxImportModalOpen(true)}>
                     <FileText className="mr-2 h-4 w-4 text-blue-600" />
@@ -115,7 +122,7 @@ export const Header = ({
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
                       <AvatarImage
-                        src={user?.profilePhoto ? `http://localhost:3002${user.profilePhoto}` : undefined}
+                        src={user?.profilePhoto ? `${getServerBaseUrl()}${user.profilePhoto}` : undefined}
                         alt={user?.name || 'Usuario'}
                       />
                       <AvatarFallback className="bg-primary text-primary-foreground text-xs">
@@ -142,6 +149,11 @@ export const Header = ({
                     <Volume2 className="mr-2 h-4 w-4" />
                     Configuración de voz
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleOpenBookmarklet}>
+                    <Bookmark className="mr-2 h-4 w-4" />
+                    Instalar Bookmarklet
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
                     Cerrar sesión
@@ -189,6 +201,11 @@ export const Header = ({
           onRecipeAdded?.(); // Refresh the recipes list
         }}
         onViewRecipe={onViewRecipe}
+      />
+
+      <BookmarkletInstallModal
+        isOpen={isBookmarkletInstallModalOpen}
+        onClose={() => setIsBookmarkletInstallModalOpen(false)}
       />
     </header>
   );

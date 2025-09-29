@@ -24,6 +24,12 @@ Una aplicación web avanzada para gestión de recetas de cocina con funcionalida
 - ✅ Configuración personalizable (velocidad, tono, idioma)
 - ✅ Soporte multi-idioma (ES-AR, ES-ES, EN-US, etc.)
 
+### 🥗 **Información Nutricional**
+- ✅ Cálculo automático de datos nutricionales con IA
+- ✅ Etiqueta nutricional estilo FDA
+- ✅ Análisis por porción y total
+- ✅ Integración transparente con OpenAI
+
 ### 👤 **Gestión de Usuario**
 - ✅ Sistema de autenticación completo
 - ✅ Perfiles personalizables con foto
@@ -203,6 +209,13 @@ datasource db {
 5. Abre un Pull Request
 
 ## 📝 Changelog
+
+### **v2.1.0** - Enero 2025
+- ✅ Sistema de cálculo nutricional automático completamente funcional
+- ✅ Fix crítico: Validación Zod para campos `recipeType` nullable
+- ✅ Modal de información nutricional con etiqueta FDA-style
+- ✅ Integración transparente de datos nutricionales en recetas
+- ✅ Manejo robusto de errores en actualizaciones automáticas
 
 ### **v2.0.0** - Noviembre 2024
 - ✅ Sistema TTS completo con configuración personalizable

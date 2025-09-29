@@ -125,6 +125,14 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
 
+    // Set secure HTTP-only cookie for bookmarklet access
+    res.cookie('authToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    });
+
     res.json({
       user: {
         id: user.id,
@@ -143,6 +151,65 @@ router.post('/login', async (req, res) => {
     }
     res.status(500).json({ error: 'Internal server error' });
   }
+});
+
+// Simple verification endpoint for bookmarklet
+router.get('/verify', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    res.json({
+      success: true,
+      authenticated: true,
+      userId
+    });
+  } catch (error) {
+    console.error('Verify auth error:', error);
+    res.status(401).json({ error: 'Authentication failed' });
+  }
+});
+
+// Get current user info (for bookmarklet authentication check)
+router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        alias: true,
+        profilePhoto: true,
+        createdAt: true
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      user
+    });
+  } catch (error) {
+    console.error('Get user error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Logout (clear cookie)
+router.post('/logout', (req, res) => {
+  res.clearCookie('authToken');
+  res.json({ success: true, message: 'Logged out successfully' });
 });
 
 // Update profile

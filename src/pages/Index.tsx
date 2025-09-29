@@ -19,7 +19,9 @@ import { Grid3X3, Grid2X2, Grid, Columns, Filter, ChevronDown, X, Play, Pause, S
 import { api } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { DebugAuth } from "@/components/DebugAuth";
 import { AuthPage } from "@/components/auth/AuthPage";
+import { BookmarkletLoginPage } from "@/components/BookmarkletLoginPage";
 import { isThermomixRecipe } from "@/utils/recipeUtils";
 import { useVoiceSettings } from "@/hooks/useVoiceSettings";
 
@@ -176,8 +178,15 @@ const Index = () => {
     setDisplayedCount(24);
   }, [user, searchTerm, filters]);
 
-  // If user is not logged in, show auth page
+  // Check if this is a bookmarklet login attempt
+  const urlParams = new URLSearchParams(window.location.search);
+  const isBookmarkletLogin = urlParams.get('bookmarklet') === 'true';
+
+  // If user is not logged in, show appropriate page
   if (!user) {
+    if (isBookmarkletLogin) {
+      return <BookmarkletLoginPage />;
+    }
     return <AuthPage />;
   }
 
@@ -478,7 +487,37 @@ Genera un script natural y conversacional explicando la receta paso a paso. Comi
 
             // Save the generated script to the recipe
             const updatedRecipe = { ...recipe, locution: scriptText };
-            await api.recipes.update(recipe.id, updatedRecipe);
+
+            // Clean the recipe data to match backend schema
+            const cleanedRecipe = {
+              title: updatedRecipe.title,
+              description: updatedRecipe.description,
+              prepTime: updatedRecipe.prepTime,
+              cookTime: updatedRecipe.cookTime,
+              servings: updatedRecipe.servings,
+              difficulty: updatedRecipe.difficulty,
+              recipeType: updatedRecipe.recipeType,
+              locution: updatedRecipe.locution,
+              images: updatedRecipe.images,
+              ingredients: updatedRecipe.ingredients.map(ing => ({
+                name: ing.name,
+                amount: ing.amount || "",
+                unit: ing.unit || "",
+                order: ing.order
+              })),
+              instructions: updatedRecipe.instructions.map(inst => ({
+                step: inst.step,
+                description: inst.description,
+                time: inst.thermomixSettings?.time || "",
+                temperature: inst.thermomixSettings?.temperature || "",
+                speed: inst.thermomixSettings?.speed || ""
+              })),
+              tags: updatedRecipe.tags.map(tag =>
+                typeof tag === 'string' ? tag : tag.tag || tag.name || String(tag)
+              ).filter(tag => tag && tag.length > 0)
+            };
+
+            await api.recipes.update(recipe.id, cleanedRecipe);
 
             // Update local state
             setRecipes(prev => prev.map(r => r.id === recipe.id ? updatedRecipe : r));
@@ -918,6 +957,7 @@ Genera un script natural y conversacional explicando la receta paso a paso. Comi
           </p>
         </div>
       </footer>
+
     </div>
   );
 };

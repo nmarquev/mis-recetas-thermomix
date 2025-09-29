@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useVoiceSettings } from "@/hooks/useVoiceSettings";
 import { NutritionLabel } from "@/components/NutritionLabel";
 import { useNutritionCalculator } from "@/hooks/useNutritionCalculator";
+import { downloadRecipePdf, printRecipePdf } from "@/utils/pdfUtils";
 
 interface RecipeModalProps {
   recipe: Recipe | null;
@@ -24,6 +25,10 @@ export const RecipeModal = ({ recipe, isOpen, onClose, onRecipeUpdate }: RecipeM
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
+  const [loadingStates, setLoadingStates] = useState({
+    print: false,
+    download: false
+  });
   const [localRecipe, setLocalRecipe] = useState<Recipe | null>(recipe);
   const { toast } = useToast();
   const { applySettingsToUtterance } = useVoiceSettings();
@@ -235,11 +240,9 @@ Genera un script natural y conversacional explicando la receta paso a paso. Comi
             instructions: updatedRecipe.instructions.map(inst => ({
               step: inst.step,
               description: inst.description,
-              thermomixSettings: {
-                time: inst.thermomixSettings?.time || "",
-                temperature: inst.thermomixSettings?.temperature || "",
-                speed: inst.thermomixSettings?.speed || ""
-              }
+              time: inst.thermomixSettings?.time || "",
+              temperature: inst.thermomixSettings?.temperature || "",
+              speed: inst.thermomixSettings?.speed || ""
             })),
             tags: (updatedRecipe.tags || []).map(tag =>
               typeof tag === 'string' ? tag : tag.tag || tag.name || String(tag)
@@ -289,7 +292,37 @@ Genera un script natural y conversacional explicando la receta paso a paso. Comi
       if (scriptText) {
         try {
           const updatedRecipe = { ...localRecipe, locution: scriptText };
-          await api.recipes.update(localRecipe.id, updatedRecipe);
+
+          // Clean the recipe data to match backend schema
+          const cleanedRecipe = {
+            title: updatedRecipe.title,
+            description: updatedRecipe.description,
+            prepTime: updatedRecipe.prepTime,
+            cookTime: updatedRecipe.cookTime,
+            servings: updatedRecipe.servings,
+            difficulty: updatedRecipe.difficulty,
+            recipeType: updatedRecipe.recipeType,
+            locution: updatedRecipe.locution,
+            images: updatedRecipe.images,
+            ingredients: updatedRecipe.ingredients.map(ing => ({
+              name: ing.name,
+              amount: ing.amount || "",
+              unit: ing.unit || "",
+              order: ing.order
+            })),
+            instructions: updatedRecipe.instructions.map(inst => ({
+              step: inst.step,
+              description: inst.description,
+              time: inst.thermomixSettings?.time || "",
+              temperature: inst.thermomixSettings?.temperature || "",
+              speed: inst.thermomixSettings?.speed || ""
+            })),
+            tags: updatedRecipe.tags.map(tag =>
+              typeof tag === 'string' ? tag : tag.tag || tag.name || String(tag)
+            ).filter(tag => tag && tag.length > 0)
+          };
+
+          await api.recipes.update(localRecipe.id, cleanedRecipe);
 
           // Update local state to prevent regeneration
           setLocalRecipe(updatedRecipe);
@@ -320,6 +353,38 @@ Genera un script natural y conversacional explicando la receta paso a paso. Comi
     setIsGeneratingScript(false);
     setCurrentImageIndex(0);
     onClose();
+  };
+
+  const handlePdfAction = async (action: 'print' | 'download') => {
+    if (!localRecipe) return;
+
+    setLoadingStates(prev => ({ ...prev, [action]: true }));
+    try {
+      switch (action) {
+        case 'print':
+          await printRecipePdf(localRecipe);
+          toast({
+            title: "Enviando a imprimir",
+            description: "Enviando PDF a la impresora...",
+          });
+          break;
+        case 'download':
+          await downloadRecipePdf(localRecipe);
+          toast({
+            title: "PDF descargado",
+            description: "PDF descargado exitosamente",
+          });
+          break;
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error.message || 'Error al procesar el PDF',
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingStates(prev => ({ ...prev, [action]: false }));
+    }
   };
 
   return (
@@ -406,23 +471,28 @@ Genera un script natural y conversacional explicando la receta paso a paso. Comi
               <Button
                 variant="outline"
                 size="sm"
-                title="Compartir"
-              >
-                <Share className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
                 title="Imprimir"
+                onClick={() => handlePdfAction('print')}
+                disabled={loadingStates.print}
               >
-                <Printer className="h-4 w-4" />
+                {loadingStates.print ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                ) : (
+                  <Printer className="h-4 w-4" />
+                )}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 title="Descargar"
+                onClick={() => handlePdfAction('download')}
+                disabled={loadingStates.download}
               >
-                <Download className="h-4 w-4" />
+                {loadingStates.download ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-gray-600" />
+                ) : (
+                  <Download className="h-4 w-4" />
+                )}
               </Button>
               <Button
                 variant="outline"
