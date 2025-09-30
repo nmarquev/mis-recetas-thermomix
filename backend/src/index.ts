@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import path from 'path';
 import https from 'https';
 import fs from 'fs';
+import cookieParser from 'cookie-parser';
 
 // Load environment variables
 dotenv.config();
@@ -28,15 +29,31 @@ const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Middleware
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" }, // Permitir recursos cross-origin
+}));
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production'
-    ? ['https://your-domain.com']
-    : true, // Permitir todo en desarrollo
+  origin: function(origin, callback) {
+    // En desarrollo, permitir cualquier origen explícitamente (no usar 'true' con credentials)
+    // En producción, lista blanca de dominios permitidos
+    if (process.env.NODE_ENV === 'production') {
+      const allowedOrigins = ['https://your-domain.com'];
+      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    } else {
+      // En desarrollo, siempre devolver el origen específico (NUNCA '*' con credentials)
+      // Si no hay origin header (ej: peticiones de servidor), devolver un origen por defecto
+      callback(null, origin || 'http://localhost:8080');
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+app.use(cookieParser());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -48,26 +65,6 @@ app.use('/uploads', (req, res, next) => {
   res.header('Cross-Origin-Resource-Policy', 'cross-origin');
   next();
 }, express.static(path.join(__dirname, '../uploads')));
-
-// Serve bookmarklet script with CORS headers
-app.use('/bookmarklet', (req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
-  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
-  res.header('Content-Type', 'application/javascript');
-  next();
-}, express.static(path.join(__dirname, '../public/bookmarklet')));
-
-// Health check with CORS headers for bookmarklet
-app.get('/health', (req, res) => {
-  // Agregar headers CORS específicos para bookmarklet
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
-});
 
 // Routes
 app.use('/api/auth', authRoutes);
@@ -84,13 +81,8 @@ app.use('/api/nutrition', nutritionRoutes);
 app.use('/api/pdf', pdfRoutes);
 app.use('/api/test', testPdfRoutes);
 
-// Health endpoint for bookmarklet server detection
+// Health check endpoint
 app.get('/api/health', (req, res) => {
-  // Agregar headers CORS específicos para bookmarklet
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-
   res.json({
     status: 'ok',
     service: 'TasteBox Recipe API',

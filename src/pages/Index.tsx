@@ -21,7 +21,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { DebugAuth } from "@/components/DebugAuth";
 import { AuthPage } from "@/components/auth/AuthPage";
-import { BookmarkletLoginPage } from "@/components/BookmarkletLoginPage";
 import { isThermomixRecipe } from "@/utils/recipeUtils";
 import { useVoiceSettings } from "@/hooks/useVoiceSettings";
 
@@ -178,15 +177,8 @@ const Index = () => {
     setDisplayedCount(24);
   }, [user, searchTerm, filters]);
 
-  // Check if this is a bookmarklet login attempt
-  const urlParams = new URLSearchParams(window.location.search);
-  const isBookmarkletLogin = urlParams.get('bookmarklet') === 'true';
-
-  // If user is not logged in, show appropriate page
+  // If user is not logged in, show auth page
   if (!user) {
-    if (isBookmarkletLogin) {
-      return <BookmarkletLoginPage />;
-    }
     return <AuthPage />;
   }
 

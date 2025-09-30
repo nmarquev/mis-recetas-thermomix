@@ -126,10 +126,12 @@ router.post('/login', async (req, res) => {
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
 
     // Set secure HTTP-only cookie for bookmarklet access
+    // En desarrollo: sameSite 'lax' + secure false para permitir localhost y HTTP
+    // En producción: sameSite 'none' + secure true para cross-origin HTTPS
     res.cookie('authToken', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production', // true en prod (HTTPS), false en dev
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 

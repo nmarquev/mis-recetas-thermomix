@@ -8,9 +8,12 @@
 
 ## Estado del proyecto
 - ✅ Funcionalidad base de recetas completada
+- ✅ **Chrome Extension implementada** para importación directa
 - ✅ Importación desde URLs (Instagram, web) funcionando
 - ✅ Importación DOCX implementada con validación mejorada
 - ✅ Importación PDF implementada con procesamiento multimodal
+- ✅ **Cookidoo/Thermomix optimizado** con función, tiempo, temperatura, velocidad
+- ✅ **Recetas multiparte** con soporte para secciones
 - ✅ Sistema TTS (Text-to-Speech) integrado
 - ✅ Configuración de voz personalizable
 - ✅ Edición de perfiles de usuario
@@ -20,9 +23,67 @@
 
 ---
 
+## 🆕 **ÚLTIMA ACTUALIZACIÓN (Sep 2025)**
+
+### ✅ **Chrome Extension + Mejoras Cookidoo/Thermomix - COMPLETADO**
+
+**Implementaciones finalizadas:**
+
+1. **Chrome Extension funcionando completamente**
+   - Reemplaza sistema de bookmarklet (eliminado)
+   - Importación directa desde cualquier sitio web
+   - Modal de instalación con instrucciones completas
+   - Menú de usuario actualizado con opción "Instalar Extensión Chrome"
+
+2. **Cookidoo/Thermomix optimizado**
+   - ✅ Fix: Ingredientes sin duplicación de unidades ("40 g" ✓, no "40 g g" ✗)
+   - ✅ Fix: Instrucciones sin HTML tags (`<nobr>`, `<br>` eliminados)
+   - ✅ Fix: Detección de función Thermomix (Amasar, Batir, Picar, etc.)
+   - ✅ Fix: Extracción correcta de configuraciones (tiempo, temperatura, velocidad)
+   - ✅ Fix: Porciones precisas (manejo de rangos como "4-6" → 6)
+   - ✅ Fix: Solo 3-4 tags relevantes (elimina "recetas similares")
+   - ✅ Fix: Soporte para recetas multiparte (plato + salsa + acompañamiento)
+
+3. **Migración de base de datos**
+   - ✅ Nuevo campo `function` en tabla `instructions`
+   - ✅ Nuevo campo `section` en tablas `ingredients` e `instructions`
+   - ✅ Migration aplicada: `20250930050343_add_thermomix_function_and_sections`
+
+**Archivos modificados:**
+- `backend/prisma/schema.prisma` - Schema actualizado
+- `backend/src/services/llmServiceImproved.ts` - Prompts mejorados + HTML cleanup
+- `backend/src/routes/importHtml.ts` - Guardado de nuevos campos
+- `src/types/recipe.ts` - Interfaces actualizadas
+- `src/utils/recipeUtils.ts` - Detección de función
+- `src/components/ExtensionInstallModal.tsx` - Nuevo componente
+- `src/components/Header.tsx` - Menu actualizado
+
+**Próximos pasos sugeridos:**
+- [ ] Actualizar documentación (README + CLAUDE.md) ✅ EN PROGRESO
+- [ ] Commit y push a repo remoto
+- [ ] Plan de deployment a Vercel (pendiente análisis)
+
+---
+
 ## 🎯 **FUNCIONALIDADES IMPLEMENTADAS**
 
-### **1. Sistema de Text-to-Speech (TTS)**
+### **1. Chrome Extension para Importación Directa**
+- ✅ Manifest V3 para máxima compatibilidad
+- ✅ Content script para extracción de contenido HTML
+- ✅ Background service worker para comunicación con API
+- ✅ Popup UI con autenticación y estado visual
+- ✅ Soporte para Cookidoo, Instagram, blogs de cocina y más
+- ✅ Extracción automática de recetas completas con un clic
+- ✅ Modal de instrucciones de instalación en la app
+
+**Archivos clave:**
+- `extension/manifest.json` - Configuración Manifest V3
+- `extension/background.js` - Service worker con API communication
+- `extension/content.js` - Content script para extracción
+- `extension/popup.html/js/css` - UI de la extensión
+- `src/components/ExtensionInstallModal.tsx` - Modal de instrucciones
+
+### **2. Sistema de Text-to-Speech (TTS)**
 - ✅ Generación automática de scripts narrativos con LLM
 - ✅ Configuración de voz personalizable (velocidad, tono, volumen, idioma)
 - ✅ Reproducción directa desde tarjetas de recetas
@@ -37,7 +98,7 @@
 - `src/pages/Index.tsx` - Implementación de TTS en cards
 - `src/components/RecipeModal.tsx` - TTS completo en modal
 
-### **2. Importación de Documentos (PDF/DOCX)**
+### **3. Importación de Documentos (PDF/DOCX)**
 - ✅ Soporte para archivos PDF con procesamiento multimodal GPT-4o-mini
 - ✅ Soporte para archivos DOCX con extracción avanzada
 - ✅ Conversión de páginas PDF a imágenes para análisis visual
@@ -55,7 +116,31 @@
 - `src/components/pdf/PdfImportModal.tsx` - UI principal PDF
 - `backend/src/routes/recipes.ts` - Validación Zod mejorada
 
-### **3. Gestión de Usuarios y Perfiles**
+### **4. Importación Optimizada de Cookidoo/Thermomix**
+- ✅ **Detección de función Thermomix**: Amasar, Batir, Picar, Mezclar, Triturar, etc.
+- ✅ **Extracción precisa de configuraciones**: Tiempo, temperatura, velocidad
+- ✅ **Limpieza HTML automática**: Elimina tags `<nobr>`, `<br>` y otros
+- ✅ **Prevención de duplicación de unidades**: "40 g" en vez de "40 g g"
+- ✅ **Detección mejorada de porciones**: Manejo de rangos (4-6 → 6)
+- ✅ **Limitación de tags**: Solo 3-4 tags relevantes, sin "recetas similares"
+- ✅ **Soporte para recetas multiparte**: Plato principal, salsas, acompañamientos
+- ✅ **Schema actualizado**: Nuevos campos `function` y `section` en DB
+
+**Archivos clave:**
+- `backend/prisma/schema.prisma` - Campos `function` y `section` agregados
+- `backend/src/services/llmServiceImproved.ts` - Prompts optimizados para Cookidoo
+- `backend/src/routes/importHtml.ts` - Guardado de nuevos campos
+- `src/types/recipe.ts` - Interfaces actualizadas
+- `src/utils/recipeUtils.ts` - Utilidades para function detection
+
+**Mejoras específicas en prompts LLM:**
+- Instrucciones detalladas para extracción de función Thermomix
+- Patrones de detección para tiempo/temperatura/velocidad
+- Reglas anti-duplicación de unidades
+- Cleanup de HTML entities y tags
+- Detección de secciones en recetas complejas
+
+### **5. Gestión de Usuarios y Perfiles**
 - ✅ Sistema de autenticación completo
 - ✅ Edición de perfiles de usuario
 - ✅ Carga de fotos de perfil con preview
@@ -66,7 +151,7 @@
 - `src/components/EditProfileModal.tsx` - Edición de perfil
 - `backend/src/routes/profile.ts` - API de perfiles
 
-### **4. UI/UX Mejoradas**
+### **6. UI/UX Mejoradas**
 - ✅ Themed components con TasteBox branding
 - ✅ Gradientes y sombras elegantes
 - ✅ Animaciones suaves en hover/focus
@@ -81,7 +166,7 @@
 - `src/components/ThemeSwitcher.tsx` - Switcher de tema
 - `src/contexts/ThemeContext.tsx` - Context de tema
 
-### **5. Validación y Manejo de Errores**
+### **7. Validación y Manejo de Errores**
 - ✅ Schemas Zod robustos para null/undefined
 - ✅ Manejo de errores en importación de documentos
 - ✅ Cleanup automático de archivos temporales
@@ -96,7 +181,7 @@
 - Timeouts para operaciones de larga duración
 - **FIX**: Validación `recipeType` para aceptar valores `null` en actualizaciones automáticas de nutrición
 
-### **6. Sistema de Cálculo Nutricional**
+### **8. Sistema de Cálculo Nutricional**
 - ✅ Cálculo automático de información nutricional con LLM
 - ✅ Modal de información nutricional con etiqueta FDA-style
 - ✅ Integración transparente en actualización de recetas

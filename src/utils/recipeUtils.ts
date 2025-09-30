@@ -30,6 +30,7 @@ export function isThermomixRecipe(recipe: Recipe): boolean {
 export function hasThermomixSettings(instruction: Instruction): boolean {
   const settings = instruction.thermomixSettings;
   return settings && (
+    (settings.function && settings.function.trim() !== '') ||
     (settings.time && settings.time.trim() !== '') ||
     (settings.temperature && settings.temperature.trim() !== '') ||
     (settings.speed && settings.speed.trim() !== '')
@@ -46,6 +47,10 @@ export function getThermomixSettingsDisplay(instruction: Instruction): string[] 
   if (!settings) return [];
 
   const display: string[] = [];
+
+  if (settings.function && settings.function.trim() !== '') {
+    display.push(`🔧 ${settings.function}`);
+  }
 
   if (settings.time && settings.time.trim() !== '') {
     display.push(`⏱️ ${settings.time}`);

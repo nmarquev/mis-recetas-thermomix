@@ -80,6 +80,7 @@ model Ingredient {
   amount   String
   unit     String?
   order    Int
+  section  String? // Section for multi-part recipes (e.g., "Plato principal", "Salsa")
 
   recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 
@@ -91,9 +92,11 @@ model Instruction {
   recipeId    String
   step        Int
   description String
+  function    String? // Thermomix function (e.g., "Amasar", "Batir", "Picar")
   time        String? // Thermomix time setting
   temperature String? // Thermomix temperature setting
   speed       String? // Thermomix speed setting
+  section     String? // Section for multi-part recipes
 
   recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 

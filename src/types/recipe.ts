@@ -12,13 +12,16 @@ export interface Ingredient {
   amount: string;
   unit?: string;
   order: number;
+  section?: string; // Section for multi-part recipes (e.g., "Plato principal", "Salsa")
 }
 
 export interface Instruction {
   id?: string;
   step: number;
   description: string;
+  section?: string; // Section for multi-part recipes
   thermomixSettings?: {
+    function?: string; // Thermomix function (e.g., "Amasar", "Batir", "Picar")
     time?: string;
     temperature?: string;
     speed?: string;

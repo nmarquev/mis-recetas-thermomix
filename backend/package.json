@@ -14,9 +14,11 @@
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
+    "@types/cookie-parser": "^1.4.9",
     "axios": "^1.12.2",
     "bcryptjs": "^2.4.3",
     "canvas": "^3.2.0",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.1",

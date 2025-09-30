@@ -12,11 +12,14 @@ Una aplicación web avanzada para gestión de recetas de cocina con funcionalida
 - ✅ Favoritos y búsqueda inteligente
 
 ### 🤖 **Importación Inteligente**
+- ✅ **Chrome Extension**: Importación directa desde cualquier sitio web con un clic
 - ✅ **URLs**: Instagram, sitios web de recetas
 - ✅ **PDF**: Análisis multimodal con GPT-4o-mini
 - ✅ **DOCX**: Extracción avanzada de documentos Word
 - ✅ Detección automática de ingredientes e instrucciones
 - ✅ Generación automática de metadatos (tags, dificultad, tipo)
+- ✅ **Cookidoo/Thermomix**: Extracción optimizada con función, tiempo, temperatura, velocidad
+- ✅ **Recetas multiparte**: Soporte para secciones (plato principal, salsa, acompañamiento)
 
 ### 🎧 **Text-to-Speech (TTS)**
 - ✅ Reproducción de recetas con voz natural
@@ -58,10 +61,16 @@ Una aplicación web avanzada para gestión de recetas de cocina con funcionalida
 - **Zod** para validación
 
 ### **IA y Procesamiento**
+- **OpenAI GPT-5-mini** con Responses API para extracción optimizada
 - **OpenAI GPT-4o-mini** para análisis multimodal
 - **pdf-poppler** para procesamiento PDF
 - **mammoth** para archivos DOCX
 - **Web Speech API** para síntesis de voz
+
+### **Browser Extension**
+- **Chrome Manifest V3** para máxima compatibilidad
+- **Content Scripts** para extracción de contenido web
+- **Background Service Worker** para comunicación con API
 
 ## 🚀 Instalación y Desarrollo
 
@@ -146,6 +155,12 @@ thermo-recipe-genius/
 │   │   └── utils/               # Utilidades backend
 │   ├── prisma/                  # Schema y migraciones DB
 │   └── uploads/                 # Archivos temporales
+├── extension/                   # Chrome Extension
+│   ├── manifest.json            # Manifest V3 config
+│   ├── background.js            # Service worker
+│   ├── content.js               # Content script
+│   ├── popup.html/js/css        # Extension popup
+│   └── icons/                   # Extension icons
 ├── public/                      # Assets estáticos
 └── docs/                        # Documentación
 ```
@@ -182,10 +197,28 @@ datasource db {
 
 ### **Importar Recetas**
 
-1. **Desde URL**: Pega una URL de Instagram o sitio web de recetas
-2. **Desde PDF**: Sube un archivo PDF, selecciona páginas, extrae automáticamente
-3. **Desde DOCX**: Sube un documento Word con recetas
-4. **Manualmente**: Crea recetas desde cero
+1. **Chrome Extension** (Recomendado):
+   - Instala la extensión desde el menú de usuario
+   - Navega a cualquier sitio web con recetas (Cookidoo, Instagram, blogs, etc.)
+   - Haz clic en el ícono de TasteBox en la barra de herramientas
+   - La receta se importará automáticamente con todos los detalles
+
+2. **Desde URL**: Pega una URL de Instagram o sitio web de recetas
+
+3. **Desde PDF**: Sube un archivo PDF, selecciona páginas, extrae automáticamente
+
+4. **Desde DOCX**: Sube un documento Word con recetas
+
+5. **Manualmente**: Crea recetas desde cero
+
+### **Recetas Thermomix/Cookidoo**
+
+La importación de recetas Thermomix está optimizada para extraer:
+- **Función**: Amasar, Batir, Picar, Mezclar, etc.
+- **Tiempo**: Duración exacta de cada paso
+- **Temperatura**: °C o modo Varoma
+- **Velocidad**: Velocidades 1-10, Mariposa, Turbo
+- **Secciones**: Plato principal, salsas, acompañamientos
 
 ### **Text-to-Speech**
 
@@ -209,6 +242,16 @@ datasource db {
 5. Abre un Pull Request
 
 ## 📝 Changelog
+
+### **v2.2.0** - Septiembre 2025
+- ✅ **Chrome Extension**: Importación directa desde cualquier sitio web
+- ✅ **Thermomix mejorado**: Detección de función (Amasar, Batir, Picar, etc.)
+- ✅ **Cookidoo optimizado**: Extracción precisa de ingredientes, instrucciones y configuraciones
+- ✅ **Recetas multiparte**: Soporte para secciones (plato + salsa + acompañamiento)
+- ✅ **HTML cleanup**: Eliminación automática de tags HTML en instrucciones
+- ✅ **Mejora en tags**: Limitados a 3-4 relevantes, sin duplicados
+- ✅ **Servings mejorado**: Detección precisa de porciones en Cookidoo
+- ✅ **Migration**: Nuevos campos `function` y `section` en base de datos
 
 ### **v2.1.0** - Enero 2025
 - ✅ Sistema de cálculo nutricional automático completamente funcional

@@ -76,16 +76,19 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
             name: ing.name,
             amount: ing.amount,
             unit: ing.unit,
-            order: index + 1
+            order: index + 1,
+            section: ing.section || undefined
           }))
         },
         instructions: {
           create: recipeData.instructions.map(inst => ({
             step: inst.step,
             description: inst.description,
+            function: inst.function || undefined,
             time: inst.time || undefined,
             temperature: inst.temperature || undefined,
-            speed: inst.speed || undefined
+            speed: inst.speed || undefined,
+            section: inst.section || undefined
           }))
         },
         tags: {
@@ -127,6 +130,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
       instructions: savedRecipe.instructions.map(instruction => ({
         ...instruction,
         thermomixSettings: {
+          function: instruction.function,
           time: instruction.time,
           temperature: instruction.temperature,
           speed: instruction.speed

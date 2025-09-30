@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, Download, User, LogOut, Settings, FileText, Volume2, Sparkles, Bookmark } from "lucide-react";
+import { Search, Plus, Download, User, LogOut, Settings, FileText, Volume2, Sparkles, Chrome } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { EditProfileModal } from "@/components/EditProfileModal";
 import { DocxImportModal } from "@/components/DocxImportModal";
 import { PdfImportModal } from "@/components/pdf/PdfImportModal";
 import { IntelligentSearchModal } from "@/components/IntelligentSearchModal";
+import { ExtensionInstallModal } from "@/components/ExtensionInstallModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,7 +18,6 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { VoiceSettingsModal } from "@/components/VoiceSettingsModal";
-import { BookmarkletInstallModal } from "@/components/BookmarkletInstallModal";
 import { getServerBaseUrl } from "@/utils/api";
 
 interface HeaderProps {
@@ -39,14 +39,10 @@ export const Header = ({
   const [isPdfImportModalOpen, setIsPdfImportModalOpen] = useState(false);
   const [isVoiceSettingsModalOpen, setIsVoiceSettingsModalOpen] = useState(false);
   const [isIntelligentSearchModalOpen, setIsIntelligentSearchModalOpen] = useState(false);
-  const [isBookmarkletInstallModalOpen, setIsBookmarkletInstallModalOpen] = useState(false);
+  const [isExtensionModalOpen, setIsExtensionModalOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
-  };
-
-  const handleOpenBookmarklet = () => {
-    setIsBookmarkletInstallModalOpen(true);
   };
 
   const getUserInitials = (name: string) => {
@@ -149,9 +145,9 @@ export const Header = ({
                     <Volume2 className="mr-2 h-4 w-4" />
                     Configuración de voz
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleOpenBookmarklet}>
-                    <Bookmark className="mr-2 h-4 w-4" />
-                    Instalar Bookmarklet
+                  <DropdownMenuItem onClick={() => setIsExtensionModalOpen(true)}>
+                    <Chrome className="mr-2 h-4 w-4" />
+                    Instalar Extensión Chrome
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout}>
@@ -203,9 +199,9 @@ export const Header = ({
         onViewRecipe={onViewRecipe}
       />
 
-      <BookmarkletInstallModal
-        isOpen={isBookmarkletInstallModalOpen}
-        onClose={() => setIsBookmarkletInstallModalOpen(false)}
+      <ExtensionInstallModal
+        isOpen={isExtensionModalOpen}
+        onClose={() => setIsExtensionModalOpen(false)}
       />
     </header>
   );

@@ -1,0 +1,12 @@
+# Ignore packaged extension
+*.zip
+*.crx
+*.pem
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore temp files
+*.tmp
+*.log

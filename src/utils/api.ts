@@ -1,6 +1,7 @@
 // Utility function to get the base server URL
 export const getServerBaseUrl = (): string => {
-  return 'https://localhost:3006';
+  // Usar variable de entorno si existe, sino usar puerto 3005 (el puerto actual del backend)
+  return import.meta.env.VITE_API_URL || 'https://localhost:3005';
 };
 
 // Utility function to get the API base URL

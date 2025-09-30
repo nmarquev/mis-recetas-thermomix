@@ -3,6 +3,24 @@ import { z } from 'zod';
 import { RecipeImportResponse } from '../types/recipe';
 import axios from 'axios';
 
+// Helper function to clean HTML tags from text
+function cleanHtmlFromText(text: string): string {
+  if (!text) return text;
+  return text
+    .replace(/<nobr>/gi, '')
+    .replace(/<\/nobr>/gi, '')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, '')  // Remove all HTML tags
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // Validation schema for LLM response - ULTRA RESILIENT VERSION
 const llmResponseSchema = z.object({
   error: z.boolean().optional(),
@@ -22,14 +40,14 @@ const llmResponseSchema = z.object({
     .transform(ingredients => ingredients.length > 0 ? ingredients : [{name: 'Ingredientes no especificados', amount: 'al gusto', unit: undefined}]), // ensure at least 1 ingredient
   instructions: z.array(z.object({
     step: z.number().min(1).catch(1), // invalid step numbers become 1
-    description: z.string().min(1).catch('Paso de preparación') // fallback description
+    description: z.string().min(1).transform(val => cleanHtmlFromText(val)).catch('Paso de preparación') // Clean HTML and fallback description
   })).min(1).catch([{step: 1, description: 'Preparar según la receta original'}]), // minimum 1 instruction
   prepTime: z.number().min(1).nullable().catch(30).transform(val => val ?? 30), // always return valid number
   cookTime: z.number().nullable().optional().catch(null).transform(val => val === null ? undefined : val),
   servings: z.number().min(1).nullable().catch(4).transform(val => val ?? 4), // always return valid number
   difficulty: z.enum(['Fácil', 'Medio', 'Difícil']).nullable().catch('Medio').transform(val => val ?? 'Medio'), // always return valid difficulty
   recipeType: z.string().nullable().optional().catch(null).transform(val => val === null || val === '' ? undefined : val),
-  tags: z.array(z.string()).optional().catch([]).transform(val => val || []) // make tags completely optional with fallback
+  tags: z.array(z.string()).max(4).optional().catch([]).transform(val => val || []) // Limit to 4 tags max
 });
 
 export class LLMServiceImproved {
@@ -856,8 +874,11 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
 🚨 PERO SÉ PRECISO EN LA EXTRACCIÓN - NO MODIFIQUES NADA:
 - CANTIDADES: Extrae EXACTAMENTE ("300g", "1 cdta", "2 tazas", "un puñado")
   * Si NO hay cantidad específica (ej: "sal", "aceite"), usa string VACÍO "" en amount
+  * ⚠️ CRÍTICO: Si la cantidad YA incluye unidad (ej: "40g"), NO dupliques en unit
+  * Formato correcto: {"name": "mantequilla", "amount": "40", "unit": "g"}
+  * Formato INCORRECTO: {"amount": "40 g", "unit": "g"} → resultaría en "40 g g"
 - INGREDIENTES: Nombres COMPLETOS y EXACTOS, no omitas ninguno
-- INSTRUCCIONES: Transcribe SIN MODIFICAR, mantén el texto original
+- INSTRUCCIONES: Transcribe SIN MODIFICAR, mantén el texto original, LIMPIA tags HTML
 - TIEMPOS/PORCIONES: Valores EXACTOS o estimaciones mencionadas
 
 🔢 INSTRUCCIONES - CAPTURA TODOS LOS PASOS COMPLETOS:
@@ -868,17 +889,67 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
 - Mantén orden exacto y numeración como aparece
 
 ${isCookidoo ? `
-🚨 COOKIDOO ESPECIAL - USO DE CONOCIMIENTO EXTERNO:
-Esta es una receta de Cookidoo.international. Si las instrucciones están vacías o incompletas en el HTML:
-- COMPLETA los pasos usando tu conocimiento de recetas Thermomix
-- Basándote en los ingredientes extraídos, proporciona los pasos de preparación típicos
-- Incluye tiempos, temperaturas y velocidades de Thermomix cuando sea apropiado
-- Ejemplo: "2 min / 90°C / vel 1" o "5 seg / vel 10"
-- Asegúrate de que sea una secuencia lógica de preparación
-- NO dejes las instrucciones vacías incluso si no aparecen claramente en el HTML
+🚨 COOKIDOO/THERMOMIX ESPECIAL:
+Esta es una receta de Cookidoo.international (Thermomix). EXTRACCIÓN MEJORADA:
+
+1. PORCIONES - EXTRACCIÓN PRECISA:
+   - Busca números antes de: "personas", "porciones", "raciones", "comensales", "servings"
+   - Si dice "4-6 personas" → usa el número MAYOR: 6
+   - Si dice "rinde 8 porciones" → usa 8
+   - Busca iconos de personas (👥, 🍽️) con números cerca
+   - Formato JSON: "servings": 8 (número entero)
+
+2. INSTRUCCIONES - Si están vacías/incompletas:
+   - COMPLETA usando tu conocimiento de recetas Thermomix
+   - Basándote en ingredientes, genera pasos lógicos
+   - NO dejes instrucciones vacías
+
+3. CONFIGURACIONES THERMOMIX (NUEVO - MUY IMPORTANTE):
+   Cada paso puede tener hasta 4 datos Thermomix. Busca en el TEXTO del paso:
+
+   a) FUNCIÓN: Palabras clave como:
+      - Amasar, Batir, Picar, Mezclar, Triturar, Cocinar, Calentar
+      - Emulsionar, Moler, Sofreír, Cocer, etc.
+      - Formato: "function": "Amasar"
+
+   b) TIEMPO: Patrones como:
+      - "2 min", "30 seg", "5 segundos", "1 minuto"
+      - Formato: "time": "2 min" o "time": "30 sec"
+
+   c) TEMPERATURA: Busca:
+      - Números + "°C", "grados", o palabra "Varoma"
+      - Formato: "temperature": "80°C" o "temperature": "Varoma"
+
+   d) VELOCIDAD: Busca:
+      - "vel 1-10", "velocidad 5", "v.10", "Mariposa", "Turbo"
+      - Formato: "speed": "5" o "speed": "Mariposa"
+
+   Ejemplo de paso Thermomix:
+   Texto: "Amasar 2 min / 90°C / vel 3"
+   JSON: {
+     "step": 1,
+     "description": "Amasar 2 min / 90°C / vel 3",
+     "function": "Amasar",
+     "time": "2 min",
+     "temperature": "90°C",
+     "speed": "3"
+   }
+
+4. TAGS - SOLO 3-4 RELEVANTES:
+   - Ingrediente principal (ej: "pollo", "chocolate")
+   - Tipo de plato (ej: "postre", "entrada")
+   - Característica especial (ej: "sin gluten", "vegano")
+   - NO incluyas nombres de recetas similares
+   - Máximo 4 tags
 ` : ''}
 
 ⭐ IMÁGENES: Busca hasta 3 URLs de imágenes de comida/cocina.
+
+📦 RECETAS MULTIPARTE (si aplica):
+Si la receta tiene múltiples componentes (ej: plato + salsa + guarnición):
+- DETECTA secciones por títulos: "Plato principal", "Salsa", "Acompañamiento", "Para la base", etc.
+- ASIGNA cada ingrediente/instrucción a su sección usando campo "section"
+- Si NO hay secciones, usa "section": null
 
 Extrae en formato JSON exacto:
 {
@@ -892,13 +963,28 @@ Extrae en formato JSON exacto:
     }
   ],
   "ingredients": [
-    {"name": "nombre_exacto_del_ingrediente", "amount": "cantidad_exacta_como_aparece", "unit": "unidad_si_está_separada"},
-    {"name": "ingrediente_sin_cantidad_específica", "amount": "", "unit": ""}
+    {"name": "nombre_exacto_del_ingrediente", "amount": "cantidad_exacta_como_aparece", "unit": "unidad_si_está_separada", "section": "Plato principal"},
+    {"name": "ingrediente_sin_cantidad_específica", "amount": "", "unit": "", "section": null}
   ],
   "instructions": [
-    {"step": 1, "description": "instrucción_completa_exacta_sin_modificar_incluyendo_detalles_thermomix"},
-    {"step": 2, "description": "INCLUYE_TODOS_LOS_PASOS_SIN_SALTAR_NINGUNO"},
-    {"step": 3, "description": "verifica_que_captures_secuencia_completa"}
+    {
+      "step": 1,
+      "description": "instrucción_completa_exacta_sin_tags_html",
+      "function": "Amasar",
+      "time": "2 min",
+      "temperature": "90°C",
+      "speed": "3",
+      "section": "Plato principal"
+    },
+    {
+      "step": 2,
+      "description": "INCLUYE_TODOS_LOS_PASOS_SIN_SALTAR_NINGUNO",
+      "function": null,
+      "time": null,
+      "temperature": null,
+      "speed": null,
+      "section": null
+    }
   ],
   "prepTime": tiempo_en_minutos_exacto,
   "cookTime": tiempo_cocción_en_minutos_si_existe,
