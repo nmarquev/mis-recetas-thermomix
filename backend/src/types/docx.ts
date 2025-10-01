@@ -8,6 +8,7 @@ export interface DocxUploadResponse {
   fileId: string;
   totalPages: number;
   preview: string; // First few lines of text
+  images?: string[]; // Base64 data URLs of extracted images
   error?: string;
 }
 

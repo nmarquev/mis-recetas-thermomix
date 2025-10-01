@@ -12,12 +12,18 @@ export interface Ingredient {
   amount: string;
   unit?: string;
   order: number;
+  section?: string;
 }
 
 export interface Instruction {
   id: string;
   step: number;
   description: string;
+  function?: string;
+  time?: string;
+  temperature?: string;
+  speed?: string;
+  section?: string;
   thermomixSettings?: {
     time?: string;
     temperature?: string;
@@ -56,10 +62,16 @@ export interface RecipeImportResponse {
     name: string;
     amount: string;
     unit?: string;
+    section?: string;
   }>;
   instructions: Array<{
     step: number;
     description: string;
+    function?: string;
+    time?: string;
+    temperature?: string;
+    speed?: string;
+    section?: string;
   }>;
   prepTime: number;
   cookTime?: number;

@@ -37,7 +37,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     console.log(`🖼️ Found ${recipeData.images.length} images`);
 
     // Step 2: Download and process images (if any)
-    let processedImages = [];
+    let processedImages: any[] = [];
     if (recipeData.images.length > 0) {
       console.log('📥 Downloading and processing images...');
       try {

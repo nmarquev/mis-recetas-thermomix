@@ -165,7 +165,7 @@ router.get('/image', async (req, res) => {
         console.log(`❌ Strategy ${i + 1} failed for:`, url,
           axios.isAxiosError(error) ?
             `HTTP ${error.response?.status || 'Network Error'}` :
-            error.code || error.message
+            (error instanceof Error ? error.message : String(error))
         );
         lastError = error;
         continue; // Try next strategy

@@ -140,7 +140,7 @@ if (isSSLEnabled) {
       console.log(`   - https://192.168.0.10:${PORT}`);
     });
   } catch (error) {
-    console.error('❌ SSL Certificate not found, falling back to HTTP:', error.message);
+    console.error('❌ SSL Certificate not found, falling back to HTTP:', error instanceof Error ? error.message : String(error));
     server = app.listen(Number(PORT), '0.0.0.0', () => {
       console.log(`🚀 HTTP Server running on port ${PORT} (SSL disabled)`);
       console.log(`🌐 Server accessible on all network interfaces`);

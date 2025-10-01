@@ -160,8 +160,7 @@ router.post('/extract', authenticateToken, async (req: AuthRequest, res) => {
     const processedRecipes: DocxExtractedRecipe[] = detectionResult.recipes.map(recipe => ({
       id: recipe.id,
       title: recipe.title,
-      content: recipe.content,
-      estimatedData: recipe.estimatedData
+      content: recipe.content
     }));
 
     const response: DocxExtractResponse = {
