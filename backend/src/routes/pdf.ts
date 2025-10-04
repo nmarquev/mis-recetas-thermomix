@@ -100,7 +100,7 @@ router.get('/recipe/:id', authenticateToken, async (req: AuthRequest, res) => {
   } catch (error) {
     console.error('Error generating PDF:', error);
     res.status(500).json({
-      error: 'Failed to generate PDF',
+      error: 'Error al generate PDF',
       details: error.message
     });
   }

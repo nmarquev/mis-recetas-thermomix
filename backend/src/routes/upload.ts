@@ -11,11 +11,11 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 
 const fileFilter = (req: any, file: Express.Multer.File, cb: any) => {
-  // Check if file is an image
+  // Verificar si el archivo es una imagen
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
-    cb(new Error('Only image files are allowed'), false);
+    cb(new Error('Solo se permiten archivos de imagen'), false);
   }
 };
 
@@ -23,17 +23,17 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 5 * 1024 * 1024 // Límite de 5MB
   }
 });
 
-// Upload images endpoint
+// Endpoint de carga de imágenes
 router.post('/images', authenticateToken, upload.array('images', 3), async (req: AuthRequest, res) => {
   try {
     const files = req.files as Express.Multer.File[];
 
     if (!files || files.length === 0) {
-      return res.status(400).json({ error: 'No images provided' });
+      return res.status(400).json({ error: 'No se proporcionaron imágenes' });
     }
 
     const uploadDir = process.env.UPLOAD_DIR || './uploads';
@@ -42,13 +42,13 @@ router.post('/images', authenticateToken, upload.array('images', 3), async (req:
     for (let i = 0; i < Math.min(files.length, 3); i++) {
       const file = files[i];
 
-      // Generate unique filename
+      // Generar nombre de archivo único
       const fileExtension = path.extname(file.originalname) || '.jpg';
       const filename = `recipe-${randomUUID()}-${i + 1}${fileExtension}`;
       const filePath = path.join(uploadDir, filename);
 
       try {
-        // Process image with Sharp
+        // Procesar imagen con Sharp
         await sharp(file.buffer)
           .resize(800, 600, {
             fit: 'inside',
@@ -64,11 +64,11 @@ router.post('/images', authenticateToken, upload.array('images', 3), async (req:
           url: `/uploads/${filename}`,
           localPath: filename,
           order: i + 1,
-          altText: `Recipe image ${i + 1}`
+          altText: `Imagen de receta ${i + 1}`
         });
       } catch (error) {
-        console.error(`Error processing image ${i + 1}:`, error);
-        // Continue with other images even if one fails
+        console.error(`Error procesando imagen ${i + 1}:`, error);
+        // Continuar con otras imágenes aunque una falle
       }
     }
 
@@ -77,15 +77,15 @@ router.post('/images', authenticateToken, upload.array('images', 3), async (req:
       images: processedImages
     });
   } catch (error) {
-    console.error('Upload error:', error);
+    console.error('Error de carga:', error);
 
     if (error instanceof multer.MulterError) {
       if (error.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'File too large. Maximum size is 5MB per image.' });
+        return res.status(400).json({ error: 'Archivo demasiado grande. El tamaño máximo es 5MB por imagen.' });
       }
     }
 
-    res.status(500).json({ error: 'Failed to upload images' });
+    res.status(500).json({ error: 'Error al cargar las imágenes' });
   }
 });
 

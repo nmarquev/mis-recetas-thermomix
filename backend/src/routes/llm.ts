@@ -31,7 +31,7 @@ router.post('/generate-script', authenticateToken, async (req: AuthRequest, res)
     } else {
       res.status(500).json({
         success: false,
-        error: result.error || 'Failed to generate script'
+        error: result.error || 'Error al generate script'
       });
     }
   } catch (error) {
@@ -64,7 +64,7 @@ router.post('/search-recipes', authenticateToken, async (req: AuthRequest, res) 
     } else {
       res.status(500).json({
         success: false,
-        error: result.error || 'Failed to search recipes',
+        error: result.error || 'Error al search recipes',
         query
       });
     }

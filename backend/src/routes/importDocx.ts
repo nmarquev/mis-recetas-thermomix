@@ -129,7 +129,7 @@ router.post('/upload', authenticateToken, upload.single('docx'), async (req: Aut
 
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to process DOCX file'
+      error: error instanceof Error ? error.message : 'Error al process DOCX file'
     });
   }
 });
@@ -179,14 +179,14 @@ router.post('/extract', authenticateToken, async (req: AuthRequest, res) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid request data',
+        error: 'Solicitud inválida data',
         details: error.errors
       });
     }
 
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to extract recipes from DOCX'
+      error: error instanceof Error ? error.message : 'Error al extract recipes from DOCX'
     });
   }
 });
@@ -221,13 +221,13 @@ router.post('/preview', authenticateToken, async (req: AuthRequest, res) => {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         success: false,
-        error: 'Invalid request data'
+        error: 'Solicitud inválida data'
       });
     }
 
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to preview DOCX content'
+      error: error instanceof Error ? error.message : 'Error al preview DOCX content'
     });
   }
 });

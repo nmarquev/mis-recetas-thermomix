@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { RecipeImportResponse } from '../types/recipe';
 import axios from 'axios';
 
-// Helper function to clean HTML tags from text
+// Función auxiliar para limpiar etiquetas HTML del texto
 function cleanHtmlFromText(text: string): string {
   if (!text) return text;
   return text
@@ -21,33 +21,33 @@ function cleanHtmlFromText(text: string): string {
     .trim();
 }
 
-// Validation schema for LLM response - ULTRA RESILIENT VERSION
+// Esquema de validation para respuesta LLM - VERSIÓN ULTRA RESILIENTE
 const llmResponseSchema = z.object({
   error: z.boolean().optional(),
-  title: z.string().min(1).catch('Receta Importada'), // fallback title
+  title: z.string().min(1).catch('Receta Importada'), // título por defecto
   description: z.string().optional().nullable().transform(val => val || undefined),
   images: z.array(z.object({
-    url: z.string().url().catch(''), // invalid URLs become empty
+    url: z.string().url().catch(''), // URLs inválidas se convierten en vacías
     altText: z.string().optional().nullable().transform(val => val || undefined),
-    order: z.number().min(1).max(3).catch(1) // invalid order becomes 1
-  })).max(3).optional().catch([]).transform(val => val || []), // make images completely optional with fallback
+    order: z.number().min(1).max(3).catch(1) // orden inválido se convierte en 1
+  })).max(3).optional().catch([]).transform(val => val || []), // hacer imágenes completamente opcionales con fallback
   ingredients: z.array(z.object({
-    name: z.string().min(1).catch('Ingrediente'), // fallback ingredient name
+    name: z.string().min(1).catch('Ingrediente'), // nombre de ingrediente por defecto
     amount: z.string().min(0).transform(val => val?.trim() === '' ? 'al gusto' : (val || 'al gusto')),
     unit: z.string().optional().nullable().transform(val => val || undefined)
-  }).catch({name: 'Ingrediente', amount: 'al gusto', unit: undefined})) // catch individual ingredient errors
-    .transform(ingredients => ingredients.filter(ing => ing.name && ing.name.trim() !== '' && ing.name !== 'Ingrediente')) // filter out empty names and fallback names
-    .transform(ingredients => ingredients.length > 0 ? ingredients : [{name: 'Ingredientes no especificados', amount: 'al gusto', unit: undefined}]), // ensure at least 1 ingredient
+  }).catch({name: 'Ingrediente', amount: 'al gusto', unit: undefined})) // capturar errores de ingredientes individuales
+    .transform(ingredients => ingredients.filter(ing => ing.name && ing.name.trim() !== '' && ing.name !== 'Ingrediente')) // filtrar nombres vacíos y fallback
+    .transform(ingredients => ingredients.length > 0 ? ingredients : [{name: 'Ingredientes no especificados', amount: 'al gusto', unit: undefined}]), // asegurar al menos 1 ingrediente
   instructions: z.array(z.object({
-    step: z.number().min(1).catch(1), // invalid step numbers become 1
-    description: z.string().min(1).transform(val => cleanHtmlFromText(val)).catch('Paso de preparación') // Clean HTML and fallback description
-  })).min(1).catch([{step: 1, description: 'Preparar según la receta original'}]), // minimum 1 instruction
-  prepTime: z.number().min(1).nullable().catch(30).transform(val => val ?? 30), // always return valid number
+    step: z.number().min(1).catch(1), // números de paso inválidos se convierten en 1
+    description: z.string().min(1).transform(val => cleanHtmlFromText(val)).catch('Paso de preparación') // Limpiar HTML y descripción fallback
+  })).min(1).catch([{step: 1, description: 'Preparar según la receta original'}]), // mínimo 1 instrucción
+  prepTime: z.number().min(1).nullable().catch(30).transform(val => val ?? 30), // siempre retornar número válido
   cookTime: z.number().nullable().optional().catch(null).transform(val => val === null ? undefined : val),
-  servings: z.number().min(1).nullable().catch(4).transform(val => val ?? 4), // always return valid number
-  difficulty: z.enum(['Fácil', 'Medio', 'Difícil']).nullable().catch('Medio').transform(val => val ?? 'Medio'), // always return valid difficulty
+  servings: z.number().min(1).nullable().catch(4).transform(val => val ?? 4), // siempre retornar número válido
+  difficulty: z.enum(['Fácil', 'Medio', 'Difícil']).nullable().catch('Medio').transform(val => val ?? 'Medio'), // siempre retornar dificultad válida
   recipeType: z.string().nullable().optional().catch(null).transform(val => val === null || val === '' ? undefined : val),
-  tags: z.array(z.string()).max(4).optional().catch([]).transform(val => val || []) // Limit to 4 tags max
+  tags: z.array(z.string()).max(4).optional().catch([]).transform(val => val || []) // Límite de 4 tags máximo
 });
 
 export class LLMServiceImproved {
@@ -56,47 +56,47 @@ export class LLMServiceImproved {
   constructor() {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      throw new Error('OPENAI_API_KEY environment variable is required');
+      throw new Error('Variable de entorno OPENAI_API_KEY es requerida');
     }
 
     this.openai = new OpenAI({
       apiKey,
-      timeout: 60000 // 60 seconds timeout for LLM requests
+      timeout: 60000 // Timeout de 60 segundos para requests LLM
     });
   }
 
   async extractRecipeFromUrl(url: string): Promise<RecipeImportResponse> {
-    console.log('\n🚀 STARTING RECIPE EXTRACTION');
+    console.log('\n🚀 INICIANDO EXTRACCIÓN DE RECETA');
     console.log('📍 URL:', url);
 
     try {
       // Check if it's a video URL and handle differently
       if (this.isVideoUrl(url)) {
-        console.log('🎥 Video URL detected, attempting transcript extraction...');
+        console.log('🎥 URL de video detectada, intentando extracción de transcripción...');
         return await this.extractRecipeFromVideo(url);
       }
 
       // Fetch HTML content for regular pages
-      console.log('🌐 Fetching web content...');
+      console.log('🌐 Obteniendo contenido web...');
       const html = await this.fetchWebContent(url);
-      console.log('✅ Web content fetched successfully');
-      console.log('📏 Content length:', html.length, 'characters');
+      console.log('✅ Contenido web obtenido successfully');
+      console.log('📏 Longitud del contenido:', html.length, 'characters');
 
       // Extract recipe data with LLM
-      console.log('🤖 Starting LLM extraction...');
+      console.log('🤖 Iniciando extracción LLM...');
       const recipeData = await this.extractRecipeWithLLM(html, url);
 
-      console.log('🎉 RECIPE EXTRACTION COMPLETED SUCCESSFULLY');
-      console.log('📋 Final recipe title:', recipeData.title);
+      console.log('🎉 EXTRACCIÓN DE RECETA COMPLETADA EXITOSAMENTE');
+      console.log('📋 Título final de receta:', recipeData.title);
       console.log('=====================================\n');
 
       return recipeData;
     } catch (error) {
-      console.error('\n💥 RECIPE EXTRACTION FAILED');
+      console.error('\n💥 EXTRACCIÓN DE RECETA FALLÓ');
       console.error('❌ Error:', error);
-      console.error('📍 URL that failed:', url);
+      console.error('📍 URL que falló:', url);
       console.error('=====================================\n');
-      throw new Error(`Failed to extract recipe: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Error al extraer receta: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   }
 
@@ -116,23 +116,23 @@ export class LLMServiceImproved {
   }
 
   private async extractRecipeFromVideo(url: string): Promise<RecipeImportResponse> {
-    console.log('🎥 Processing video URL for recipe extraction');
+    console.log('🎥 Procesando URL de video para extracción de receta');
 
     try {
       let content: string = '';
 
       if (url.includes('youtube.com') || url.includes('youtu.be')) {
-        console.log('📺 YouTube video detected');
+        console.log('📺 Video de YouTube detectado');
         content = await this.extractYouTubeContent(url);
       } else if (url.includes('instagram.com')) {
-        console.log('📷 Instagram video detected');
+        console.log('📷 Video de Instagram detectado');
         content = await this.extractInstagramContent(url);
       } else {
-        console.log('🎬 Other video platform, fetching page content');
+        console.log('🎬 Otra plataforma de video, obteniendo contenido de página');
         try {
           content = await this.fetchWebContent(url);
         } catch (fetchError) {
-          console.log('Failed to fetch video content, using URL as fallback');
+          console.log('Error al obtener contenido de video, usando URL como respaldo');
           content = `Video URL: ${url}\nPlatform: Other video platform`;
         }
       }
@@ -142,25 +142,25 @@ export class LLMServiceImproved {
         content = `Video URL: ${url}\nNote: Limited content available for extraction.`;
       }
 
-      console.log('📝 Content length for processing:', content.length, 'characters');
+      console.log('📝 Longitud de contenido para procesar:', content.length, 'characters');
 
       // Use specialized video prompt
       const recipeData = await this.extractRecipeFromVideoContent(content, url);
 
-      console.log('✅ Video recipe extraction completed');
+      console.log('✅ Extracción de receta de video completada');
       return recipeData;
 
     } catch (error) {
-      console.error('❌ Video extraction failed:', error);
+      console.error('❌ Extracción de video falló:', error);
 
       // Create a fallback recipe based on the URL
-      const fallbackRecipe = this.createFallbackVideoRecipe(url, error instanceof Error ? error.message : 'Unknown error');
+      const fallbackRecipe = this.createFallbackVideoRecipe(url, error instanceof Error ? error.message : 'Error desconocido');
       return fallbackRecipe;
     }
   }
 
   private createFallbackVideoRecipe(url: string, errorMessage: string): RecipeImportResponse {
-    console.log('🔄 Creating fallback recipe for video URL');
+    console.log('🔄 Creando receta de respaldo para URL de video');
 
     const urlParts = url.split('/');
     const videoId = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2] || 'video';
@@ -190,7 +190,7 @@ export class LLMServiceImproved {
   }
 
   private async extractYouTubeContent(url: string): Promise<string> {
-    console.log('📺 Fetching YouTube page for transcript/description...');
+    console.log('📺 Obteniendo página de YouTube para transcripción/descripción...');
 
     try {
       // Fetch the YouTube page to get video metadata, description, etc.
@@ -225,7 +225,7 @@ export class LLMServiceImproved {
         // YouTube provides different quality thumbnails
         const thumbnailUrl = `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`;
         content += `\nVideo Thumbnail: ${thumbnailUrl}\n`;
-        console.log('🖼️ YouTube thumbnail extracted:', thumbnailUrl);
+        console.log('🖼️ Miniatura de YouTube extraída:', thumbnailUrl);
       }
 
       // Also include relevant metadata from the page
@@ -237,7 +237,7 @@ export class LLMServiceImproved {
           const videoData = JSON.stringify(data).substring(0, 5000); // Limit size
           content += `\nVideo metadata:\n${videoData}`;
         } catch (parseError) {
-          console.log('Could not parse YouTube structured data');
+          console.log('No se pudo parsear datos estructurados de YouTube');
         }
       }
 
@@ -248,19 +248,19 @@ export class LLMServiceImproved {
       return content;
 
     } catch (error) {
-      console.error('Failed to extract YouTube content:', error);
+      console.error('Error al extraer contenido de YouTube:', error);
       throw error;
     }
   }
 
   private async extractInstagramContent(url: string): Promise<string> {
-    console.log('📷 Fetching Instagram page for caption/content...');
+    console.log('📷 Obteniendo página de Instagram para caption/contenido...');
 
     try {
       const html = await this.fetchWebContent(url);
 
       if (!html || typeof html !== 'string' || html.length === 0) {
-        throw new Error('No HTML content received from Instagram');
+        throw new Error('No se recibió contenido HTML de Instagram');
       }
 
       // Extract Instagram post metadata
@@ -293,19 +293,19 @@ export class LLMServiceImproved {
       if (videoPosterMatch && videoPosterMatch[1]) {
         selectedImageUrl = videoPosterMatch[1];
         imageSource = 'video:poster';
-        console.log('🖼️ Instagram video poster found (may have less overlay):', selectedImageUrl);
+        console.log('🖼️ Poster de video de Instagram encontrado (may have less overlay):', selectedImageUrl);
       } else if (videoThumbnailMatch && videoThumbnailMatch[1]) {
         selectedImageUrl = videoThumbnailMatch[1];
         imageSource = 'video:thumbnail';
-        console.log('🖼️ Instagram video thumbnail found:', selectedImageUrl);
+        console.log('🖼️ Miniatura de video de Instagram encontrada:', selectedImageUrl);
       } else if (twitterImageMatch && twitterImageMatch[1]) {
         selectedImageUrl = twitterImageMatch[1];
         imageSource = 'twitter:image';
-        console.log('🖼️ Instagram twitter image found (may have different overlay):', selectedImageUrl);
+        console.log('🖼️ Imagen de twitter de Instagram encontrada (may have different overlay):', selectedImageUrl);
       } else if (ogImageMatch && ogImageMatch[1]) {
         selectedImageUrl = ogImageMatch[1];
         imageSource = 'og:image';
-        console.log('🖼️ Instagram og:image found (likely has play button overlay):', selectedImageUrl);
+        console.log('🖼️ og:image de Instagram encontrada (likely has play button overlay):', selectedImageUrl);
       }
 
       // We'll add the selected image URL after checking all sources
@@ -338,7 +338,7 @@ export class LLMServiceImproved {
                 // Prefer first image from JSON-LD if we don't have a better source
                 selectedImageUrl = foundImages[0];
                 imageSource = 'json-ld';
-                console.log('🖼️ Instagram JSON-LD image found:', selectedImageUrl);
+                console.log('🖼️ Imagen JSON-LD de Instagram encontrada:', selectedImageUrl);
                 jsonImageFound = true;
               }
 
@@ -346,7 +346,7 @@ export class LLMServiceImproved {
             }
           } catch (e) {
             // Continue with next match
-            console.log('Failed to parse JSON-LD data, continuing...');
+            console.log('Error al parsear datos JSON-LD, continuando...');
           }
         }
       }
@@ -365,7 +365,7 @@ export class LLMServiceImproved {
             content += `\nInstagram data found: ${JSON.stringify(sharedData).substring(0, 1000)}\n`;
           }
         } catch (e) {
-          console.log('Failed to parse Instagram shared data');
+          console.log('Error al parsear datos compartidos de Instagram');
         }
       }
 
@@ -376,11 +376,11 @@ export class LLMServiceImproved {
         content = `Instagram Reel ID: ${reelId}\nURL: ${url}\nNote: Limited content extraction from Instagram. Creating basic recipe from available information.`;
       }
 
-      console.log('📱 Instagram content extracted:', content.length, 'characters');
+      console.log('📱 Contenido de Instagram extracted:', content.length, 'characters');
       return content;
 
     } catch (error) {
-      console.error('Failed to extract Instagram content:', error);
+      console.error('Error al extraer contenido de Instagram:', error);
       // Return a fallback content instead of throwing
       return `Instagram Video URL: ${url}\nNote: Could not extract detailed content. Creating basic recipe from URL information.`;
     }
@@ -398,8 +398,6 @@ export class LLMServiceImproved {
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-5-mini',
-        reasoning_effort: 'minimal',
-        verbosity: 'low',
         messages: [
           {
             role: 'system',
@@ -438,7 +436,7 @@ La respuesta DEBE ser un JSON válido con la estructura exacta solicitada.`
       }
 
       console.log('📄 LLM Response received');
-      console.log('📏 Response length:', responseContent.length, 'characters');
+      console.log('📏 Response longitud:', responseContent.length, 'characters');
 
       let parsedResponse: any;
       try {
@@ -446,7 +444,7 @@ La respuesta DEBE ser un JSON válido con la estructura exacta solicitada.`
       } catch (parseError) {
         console.error('❌ JSON Parse Error:', parseError);
         console.error('📄 Raw response:', responseContent.substring(0, 500));
-        throw new Error('Failed to parse LLM response as JSON');
+        throw new Error('Error al parse LLM response as JSON');
       }
 
       // Apply ultra-resilient validation
@@ -465,8 +463,17 @@ La respuesta DEBE ser un JSON válido con la estructura exacta solicitada.`
       const cleanedTitle = this.cleanRecipeTitle(validatedData.title || 'Receta de Video');
 
       return {
-        ...validatedData,
-        title: cleanedTitle
+        title: cleanedTitle,
+        description: validatedData.description || '',
+        prepTime: validatedData.prepTime || 0,
+        cookTime: validatedData.cookTime || 0,
+        servings: validatedData.servings || 1,
+        difficulty: validatedData.difficulty || 'Medio',
+        recipeType: validatedData.recipeType,
+        images: (validatedData.images || []).filter(img => img.url && typeof img.order === 'number') as any[],
+        ingredients: (validatedData.ingredients || []).filter(ing => ing.name && ing.amount) as any[],
+        instructions: (validatedData.instructions || []).filter(inst => inst.description && typeof inst.step === 'number') as any[],
+        tags: validatedData.tags || []
       };
 
     } catch (error) {
@@ -619,7 +626,7 @@ ${truncatedContent}`;
         contentLength: response.data.length
       });
 
-      console.log('📏 Content length:', response.data.length, 'characters');
+      console.log('📏 Longitud del contenido:', response.data.length, 'characters');
 
       // Detect Cookidoo authentication issues
       if (url.includes('cookidoo.international') && this.isCookidooLoginPage(response.data)) {
@@ -649,7 +656,7 @@ ${truncatedContent}`;
         });
 
         console.log('✅ Simplified axios successful!');
-        console.log('📏 Content length:', simplifiedResponse.data.length, 'characters');
+        console.log('📏 Longitud del contenido:', simplifiedResponse.data.length, 'characters');
         return simplifiedResponse.data;
 
       } catch (secondError: any) {
@@ -670,12 +677,12 @@ ${truncatedContent}`;
 
           const content = await response.text();
           console.log('✅ Basic fetch successful!');
-          console.log('📏 Content length:', content.length, 'characters');
+          console.log('📏 Longitud del contenido:', content.length, 'characters');
           return content;
 
         } catch (fetchError) {
-          console.log('❌ Basic fetch also failed:', fetchError instanceof Error ? fetchError.message : 'Unknown error');
-          throw new Error(`Failed to fetch content from URL after all attempts: ${axiosError.message}`);
+          console.log('❌ Basic fetch also failed:', fetchError instanceof Error ? fetchError.message : 'Error desconocido');
+          throw new Error(`Error al fetch content from URL after all attempts: ${axiosError.message}`);
         }
       }
     }
@@ -712,15 +719,13 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
     console.log('\n📝 USER PROMPT (first 500 chars):');
     console.log('---');
     console.log(prompt.substring(0, 500) + (prompt.length > 500 ? '...[truncated]' : ''));
-    console.log('\n🚀 Sending request to OpenAI...');
+    console.log('\n🚀 Enviando solicitud a OpenAI...');
 
     let parsedResponse: any;
     let responseContent: string | undefined;
     try {
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-5-mini',
-        reasoning_effort: 'minimal',
-        verbosity: 'low',
         messages: [
           {
             role: 'system',
@@ -770,7 +775,7 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
       console.log(responseContent);
       console.log('\n=== 🤖 LLM REQUEST END ===\n');
       if (!responseContent) {
-        throw new Error('Empty response from LLM');
+        throw new Error('Respuesta vacía de LLM');
       }
 
       // Parse and validate response
@@ -778,7 +783,7 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
       try {
         parsedResponse = JSON.parse(responseContent);
       } catch (parseError) {
-        throw new SyntaxError('Invalid JSON response from LLM');
+        throw new SyntaxError('JSON inválido respuesta de LLM');
       }
 
       console.log('🔍 Parsed response keys:', Object.keys(parsedResponse));
@@ -798,12 +803,12 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
 
       console.log('📊 Extracted recipe summary:');
       console.log('  - Title:', validatedData.title);
-      console.log('  - Ingredients count:', validatedData.ingredients.length);
-      console.log('  - Instructions count:', validatedData.instructions.length);
-      console.log('  - Images count:', validatedData.images.length);
-      console.log('  - Prep time:', validatedData.prepTime, 'minutes');
-      console.log('  - Servings:', validatedData.servings);
-      console.log('  - Difficulty:', validatedData.difficulty);
+      console.log('  - Cantidad de ingredientes:', validatedData.ingredients.length);
+      console.log('  - Cantidad de instrucciones:', validatedData.instructions.length);
+      console.log('  - Cantidad de imágenes:', validatedData.images.length);
+      console.log('  - Tiempo de preparación:', validatedData.prepTime, 'minutos');
+      console.log('  - Porciones:', validatedData.servings);
+      console.log('  - Dificultad:', validatedData.difficulty);
 
       // Clean title to remove emojis
       const cleanTitle = this.cleanRecipeTitle(validatedData.title);
@@ -812,12 +817,12 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
       return {
         title: cleanTitle,
         description: validatedData.description,
-        images: this.deduplicateImages(validatedData.images || []).filter(img => img.url && img.url.trim() !== ''), // filter out empty URLs and duplicates
-        ingredients: validatedData.ingredients.map((ing, index) => ({
+        images: this.deduplicateImages(validatedData.images || []).filter(img => img.url && img.url.trim() !== '') as any[], // filter out empty URLs and duplicates
+        ingredients: validatedData.ingredients.filter(ing => ing.name && ing.amount).map((ing, index) => ({
           ...ing,
           order: index + 1
-        })),
-        instructions: validatedData.instructions.sort((a, b) => a.step - b.step),
+        })) as any[],
+        instructions: validatedData.instructions.filter(inst => inst.description && typeof inst.step === 'number').sort((a, b) => a.step - b.step) as any[],
         prepTime: validatedData.prepTime,
         cookTime: validatedData.cookTime,
         servings: validatedData.servings,
@@ -837,17 +842,17 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
         });
         console.error('📋 Raw parsed response that failed validation:');
         console.error(JSON.stringify(parsedResponse || 'undefined', null, 2));
-        throw new Error('Invalid recipe data extracted from page');
+        throw new Error('Datos de receta inválidos data extracted from page');
       }
 
       if (error instanceof SyntaxError) {
         console.error('🔧 JSON parse error details:', error.message);
         console.error('📋 Raw response that failed to parse:');
         console.error(responseContent);
-        throw new Error('Invalid response format from LLM');
+        throw new Error('Formato de respuesta inválido de LLM');
       }
 
-      console.error('🚨 Unexpected error:', error);
+      console.error('🚨 Error inesperado:', error);
       throw error;
     }
   }
@@ -1031,7 +1036,7 @@ ${truncatedHtml}`;
    */
   async extractMultipleRecipesFromPdfPages(pages: { pageNum: number; imageBase64: string; text?: string }[]): Promise<{ success: boolean; recipes: any[]; error?: string }> {
     try {
-      console.log('🤖 Sending PDF pages to GPT-4o-mini for multimodal recipe extraction...');
+      console.log('🤖 Enviando PDF pages to GPT-4o-mini for multimodal recipe extraction...');
       console.log(`📄 Processing ${pages.length} PDF pages`);
 
       const prompt = `
@@ -1117,12 +1122,10 @@ Responde SOLO con un JSON válido con este formato exacto:
         }
       ];
 
-      console.log(`🖼️ Sending ${pages.length} page images to GPT-4o-mini for multimodal analysis`);
+      console.log(`🖼️ Enviando ${pages.length} page images to GPT-4o-mini for multimodal analysis`);
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-5-mini',
-        reasoning_effort: 'minimal',
-        verbosity: 'low',
         messages,
         max_completion_tokens: 8000,
         response_format: { type: 'json_object' }
@@ -1130,7 +1133,7 @@ Responde SOLO con un JSON válido con este formato exacto:
 
       const content = response.choices[0]?.message?.content?.trim();
       if (!content) {
-        throw new Error('Empty response from GPT-4o-mini');
+        throw new Error('Respuesta vacía de GPT-4o-mini');
       }
 
       console.log('🤖 GPT-4o-mini Response received, parsing JSON...');
@@ -1145,9 +1148,9 @@ Responde SOLO con un JSON válido con este formato exacto:
         const jsonString = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : content;
         jsonResponse = JSON.parse(jsonString);
       } catch (parseError) {
-        console.error('❌ Failed to parse GPT-5-mini JSON response:', parseError);
+        console.error('❌ Error al parse GPT-5-mini JSON response:', parseError);
         console.log('Raw response sample:', content.substring(0, 500));
-        throw new Error('Invalid JSON response from GPT-5-mini');
+        throw new Error('JSON inválido respuesta de GPT-5-mini');
       }
 
       if (!jsonResponse.recipes || !Array.isArray(jsonResponse.recipes)) {
@@ -1179,8 +1182,8 @@ Responde SOLO con un JSON válido con este formato exacto:
    */
   async extractMultipleRecipesFromDocument(documentText: string): Promise<{ success: boolean; recipes: any[]; error?: string }> {
     try {
-      console.log('🤖 Sending document to LLM for multiple recipe extraction...');
-      console.log(`📄 Document length: ${documentText.length} characters`);
+      console.log('🤖 Enviando document to LLM for multiple recipe extraction...');
+      console.log(`📄 Document longitud: ${documentText.length} characters`);
 
       const prompt = `
 Analiza el siguiente documento y extrae TODAS las recetas que encuentres. El documento puede contener múltiples recetas.
@@ -1234,8 +1237,6 @@ ${documentText}
 
       const response = await this.openai.chat.completions.create({
         model: 'gpt-5-mini',
-        reasoning_effort: 'minimal',
-        verbosity: 'low',
         messages: [{ role: 'user', content: prompt }],
         max_completion_tokens: 8000,
         response_format: { type: 'json_object' }
@@ -1243,7 +1244,7 @@ ${documentText}
 
       const content = response.choices[0]?.message?.content?.trim();
       if (!content) {
-        throw new Error('Empty response from OpenAI');
+        throw new Error('Respuesta vacía de OpenAI');
       }
 
       console.log('🤖 LLM Response received, parsing JSON...');
@@ -1253,9 +1254,9 @@ ${documentText}
       try {
         jsonResponse = JSON.parse(content);
       } catch (parseError) {
-        console.error('❌ Failed to parse LLM JSON response:', parseError);
+        console.error('❌ Error al parse LLM JSON response:', parseError);
         console.log('Raw response sample:', content.substring(0, 500));
-        throw new Error('Invalid JSON response from LLM');
+        throw new Error('JSON inválido respuesta de LLM');
       }
 
       if (!jsonResponse.recipes || !Array.isArray(jsonResponse.recipes)) {
@@ -1289,8 +1290,8 @@ ${documentText}
     text: string,
     options: { suggestedTitle?: string; context?: string } = {}
   ): Promise<RecipeImportResponse> {
-    console.log('\n🚀 STARTING RECIPE EXTRACTION FROM TEXT');
-    console.log('📏 Text length:', text.length, 'characters');
+    console.log('\n🚀 INICIANDO EXTRACCIÓN DE RECETA FROM TEXT');
+    console.log('📏 Text longitud:', text.length, 'characters');
     console.log('💡 Suggested title:', options.suggestedTitle || 'none');
     console.log('🏷️ Context:', options.context || 'general');
 
@@ -1304,8 +1305,6 @@ ${documentText}
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-5-mini',
-        reasoning_effort: 'minimal',
-        verbosity: 'low',
         messages: [
           {
             role: 'system',
@@ -1338,7 +1337,7 @@ Si el texto no contiene una receta válida, responde: {"error": true}`
 
       const responseContent = completion.choices[0]?.message?.content;
       if (!responseContent) {
-        throw new Error('Empty response from LLM');
+        throw new Error('Respuesta vacía de LLM');
       }
 
       console.log('\n📋 RAW TEXT EXTRACTION RESPONSE:');
@@ -1353,7 +1352,7 @@ Si el texto no contiene una receta válida, responde: {"error": true}`
         parsedResponse = JSON.parse(responseContent);
       } catch (parseError) {
         console.error('❌ JSON Parse Error:', parseError);
-        throw new SyntaxError('Invalid JSON response from LLM');
+        throw new SyntaxError('JSON inválido respuesta de LLM');
       }
 
       console.log('🔍 Parsed response keys:', Object.keys(parsedResponse));
@@ -1373,10 +1372,10 @@ Si el texto no contiene una receta válida, responde: {"error": true}`
 
       console.log('📊 Extracted recipe summary:');
       console.log('  - Title:', validatedData.title);
-      console.log('  - Ingredients count:', validatedData.ingredients.length);
-      console.log('  - Instructions count:', validatedData.instructions.length);
-      console.log('  - Prep time:', validatedData.prepTime, 'minutes');
-      console.log('  - Servings:', validatedData.servings);
+      console.log('  - Cantidad de ingredientes:', validatedData.ingredients.length);
+      console.log('  - Cantidad de instrucciones:', validatedData.instructions.length);
+      console.log('  - Tiempo de preparación:', validatedData.prepTime, 'minutos');
+      console.log('  - Porciones:', validatedData.servings);
 
       // Clean title
       const cleanTitle = this.cleanRecipeTitle(validatedData.title);
@@ -1384,12 +1383,12 @@ Si el texto no contiene una receta válida, responde: {"error": true}`
       return {
         title: cleanTitle,
         description: validatedData.description,
-        images: validatedData.images || [], // DOCX typically won't have images
-        ingredients: validatedData.ingredients.map((ing, index) => ({
+        images: (validatedData.images || []).filter(img => img.url && typeof img.order === 'number') as any[], // DOCX typically won't have images
+        ingredients: validatedData.ingredients.filter(ing => ing.name && ing.amount).map((ing, index) => ({
           ...ing,
           order: index + 1
-        })),
-        instructions: validatedData.instructions.sort((a, b) => a.step - b.step),
+        })) as any[],
+        instructions: validatedData.instructions.filter(inst => inst.description && typeof inst.step === 'number').sort((a, b) => a.step - b.step) as any[],
         prepTime: validatedData.prepTime,
         cookTime: validatedData.cookTime,
         servings: validatedData.servings,
@@ -1408,15 +1407,15 @@ Si el texto no contiene una receta válida, responde: {"error": true}`
         error.errors.forEach((err, index) => {
           console.error(`  ${index + 1}. Path: ${err.path.join('.')} - ${err.message}`);
         });
-        throw new Error('Invalid recipe data extracted from text');
+        throw new Error('Datos de receta inválidos data extracted from text');
       }
 
       if (error instanceof SyntaxError) {
         console.error('🔧 JSON parse error details:', error.message);
-        throw new Error('Invalid response format from LLM');
+        throw new Error('Formato de respuesta inválido de LLM');
       }
 
-      console.error('🚨 Unexpected error:', error);
+      console.error('🚨 Error inesperado:', error);
       throw error;
     }
   }
@@ -1426,13 +1425,11 @@ Si el texto no contiene una receta válida, responde: {"error": true}`
    */
   async generateText(prompt: string): Promise<{ success: boolean; content?: string; error?: string }> {
     try {
-      console.log('🤖 Generating text with LLM...');
-      console.log('📏 Prompt length:', prompt.length, 'characters');
+      console.log('🤖 Generando texto con LLM...');
+      console.log('📏 Prompt longitud:', prompt.length, 'characters');
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-5-mini',
-        reasoning_effort: 'minimal',
-        verbosity: 'low',
         messages: [
           {
             role: 'system',
@@ -1448,11 +1445,11 @@ Si el texto no contiene una receta válida, responde: {"error": true}`
 
       const content = completion.choices[0]?.message?.content;
       if (!content) {
-        throw new Error('Empty response from OpenAI');
+        throw new Error('Respuesta vacía de OpenAI');
       }
 
       console.log('✅ Text generation successful');
-      console.log('📏 Response length:', content.length, 'characters');
+      console.log('📏 Response longitud:', content.length, 'characters');
 
       return {
         success: true,
@@ -1505,7 +1502,7 @@ ${contextHint}${titleHint}
 
 📊 FORMATO JSON REQUERIDO:
 {
-  "title": "Título exacto de la receta extraído del texto",
+  "title": "Título exacto de la receta extracted del texto",
   "description": "Descripción breve si está disponible",
   "images": [],
   "ingredients": [
@@ -1546,9 +1543,9 @@ ${truncatedText}`;
     error?: string;
   }> {
     try {
-      console.log('🥗 Starting nutrition calculation...');
-      console.log('📊 Ingredients count:', ingredients.length);
-      console.log('🍽️ Servings:', servings);
+      console.log('🥗 Iniciando nutrition calculation...');
+      console.log('📊 Cantidad de ingredientes:', ingredients.length);
+      console.log('🍽️ Porciones:', servings);
 
       const ingredientsList = ingredients.map(ing =>
         `${ing.amount} ${ing.unit || ''} ${ing.name}`.trim()
@@ -1586,8 +1583,6 @@ Responde SOLO con JSON, valores POR PORCIÓN:
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-5-mini',
-        reasoning_effort: 'minimal',
-        verbosity: 'low',
         messages: [
           {
             role: 'system',
@@ -1604,7 +1599,7 @@ Responde SOLO con JSON, valores POR PORCIÓN:
 
       const content = completion.choices[0]?.message?.content;
       if (!content) {
-        throw new Error('Empty response from OpenAI');
+        throw new Error('Respuesta vacía de OpenAI');
       }
 
       console.log('📦 Raw nutrition response:', content);
@@ -1614,7 +1609,7 @@ Responde SOLO con JSON, valores POR PORCIÓN:
         parsedResponse = JSON.parse(content);
       } catch (parseError) {
         console.error('❌ JSON parse error:', parseError);
-        throw new Error('Invalid JSON response from AI');
+        throw new Error('JSON inválido respuesta de AI');
       }
 
       // Validate required nutritional fields
@@ -1655,7 +1650,7 @@ Responde SOLO con JSON, valores POR PORCIÓN:
    */
   async searchRecipesWithAI(query: string, count: number = 3, offset: number = 0): Promise<{ success: boolean; recipes: any[]; error?: string; hasMore?: boolean }> {
     try {
-      console.log('🔍 Starting AI recipe search...');
+      console.log('🔍 Iniciando AI recipe search...');
       console.log('📝 Query:', query);
       console.log('📊 Count:', count, 'Offset:', offset);
 
@@ -1766,8 +1761,6 @@ NO agregues explicaciones antes o después del JSON. Responde solo con el JSON v
 
       const completion = await this.openai.chat.completions.create({
         model: 'gpt-5-mini',
-        reasoning_effort: 'minimal',
-        verbosity: 'low',
         messages: [
           {
             role: 'system',
@@ -1784,22 +1777,22 @@ NO agregues explicaciones antes o después del JSON. Responde solo con el JSON v
 
       const content = completion.choices[0]?.message?.content;
       if (!content) {
-        throw new Error('Empty response from OpenAI');
+        throw new Error('Respuesta vacía de OpenAI');
       }
 
-      console.log('📦 Raw AI response length:', content.length);
+      console.log('📦 Raw AI response longitud:', content.length);
 
       let parsedResponse;
       try {
         parsedResponse = JSON.parse(content);
       } catch (parseError) {
         console.error('❌ JSON parse error:', parseError);
-        throw new Error('Invalid JSON response from AI');
+        throw new Error('JSON inválido respuesta de AI');
       }
 
       // Validate that we have recipes
       if (!parsedResponse.recipes || !Array.isArray(parsedResponse.recipes)) {
-        throw new Error('Invalid response format: missing recipes array');
+        throw new Error('Inválido response format: missing recipes array');
       }
 
       // Basic validation for each recipe

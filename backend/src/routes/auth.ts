@@ -28,7 +28,7 @@ const updateProfileSchema = z.object({
   currentPassword: z.string().min(6).optional(),
   newPassword: z.string().min(6).optional()
 }).refine((data) => {
-  // If updating password, both currentPassword and newPassword are required
+  // Si se actualiza la contraseña, se requieren tanto la contraseña actual como la nueva
   if (data.newPassword && !data.currentPassword) {
     return false;
   }
@@ -37,28 +37,28 @@ const updateProfileSchema = z.object({
   }
   return true;
 }, {
-  message: "Both current and new password are required to change password"
+  message: "Se requieren tanto la contraseña actual como la nueva para cambiar la contraseña"
 });
 
-// Register
+// Registro
 router.post('/register', async (req, res) => {
   try {
     const { email, name, alias, password } = registerSchema.parse(req.body);
 
-    // Check if user already exists
+    // Verificar si el usuario ya existe
     const existingUser = await prisma.user.findUnique({
       where: { email }
     });
 
     if (existingUser) {
-      return res.status(400).json({ error: 'User already exists with this email' });
+      return res.status(400).json({ error: 'Ya existe un usuario con este correo electrónico' });
     }
 
-    // Hash password
+    // Hashear contraseña
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create user
+    // Crear usuario
     const user = await prisma.user.create({
       data: {
         email,
@@ -76,10 +76,10 @@ router.post('/register', async (req, res) => {
       }
     });
 
-    // Generate JWT
+    // Generar JWT
     const JWT_SECRET = process.env.JWT_SECRET;
     if (!JWT_SECRET) {
-      throw new Error('JWT_SECRET not configured');
+      throw new Error('JWT_SECRET no configurado');
     }
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
@@ -89,50 +89,50 @@ router.post('/register', async (req, res) => {
       token
     });
   } catch (error) {
-    console.error('Register error:', error);
+    console.error('Error de registro:', error);
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation error', details: error.errors });
+      return res.status(400).json({ error: 'Error de validación', details: error.errors });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
-// Login
+// Inicio de sesión
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = loginSchema.parse(req.body);
 
-    // Find user
+    // Buscar usuario
     const user = await prisma.user.findUnique({
       where: { email }
     });
 
     if (!user) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Check password
+    // Verificar contraseña
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+      return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Generate JWT
+    // Generar JWT
     const JWT_SECRET = process.env.JWT_SECRET;
     if (!JWT_SECRET) {
-      throw new Error('JWT_SECRET not configured');
+      throw new Error('JWT_SECRET no configurado');
     }
 
     const token = jwt.sign({ userId: user.id }, JWT_SECRET, { expiresIn: '7d' });
 
-    // Set secure HTTP-only cookie for bookmarklet access
+    // Establecer cookie HTTP-only segura para acceso con bookmarklet
     // En desarrollo: sameSite 'lax' + secure false para permitir localhost y HTTP
     // En producción: sameSite 'none' + secure true para cross-origin HTTPS
     res.cookie('authToken', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production', // true en prod (HTTPS), false en dev
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 días
     });
 
     res.json({
@@ -147,20 +147,20 @@ router.post('/login', async (req, res) => {
       token
     });
   } catch (error) {
-    console.error('Login error:', error);
+    console.error('Error de inicio de sesión:', error);
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation error', details: error.errors });
+      return res.status(400).json({ error: 'Error de validación', details: error.errors });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
-// Simple verification endpoint for bookmarklet
+// Endpoint simple de verificación para bookmarklet
 router.get('/verify', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(401).json({ error: 'Autenticación requerida' });
     }
 
     res.json({
@@ -169,17 +169,17 @@ router.get('/verify', authenticateToken, async (req: AuthRequest, res) => {
       userId
     });
   } catch (error) {
-    console.error('Verify auth error:', error);
-    res.status(401).json({ error: 'Authentication failed' });
+    console.error('Error de verificación de autenticación:', error);
+    res.status(401).json({ error: 'Autenticación fallida' });
   }
 });
 
-// Get current user info (for bookmarklet authentication check)
+// Obtener información del usuario actual (para verificación de autenticación con bookmarklet)
 router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(401).json({ error: 'Autenticación requerida' });
     }
 
     const user = await prisma.user.findUnique({
@@ -195,7 +195,7 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
     res.json({
@@ -203,69 +203,69 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
       user
     });
   } catch (error) {
-    console.error('Get user error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error al obtener usuario:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
-// Logout (clear cookie)
+// Cerrar sesión (limpiar cookie)
 router.post('/logout', (req, res) => {
   res.clearCookie('authToken');
-  res.json({ success: true, message: 'Logged out successfully' });
+  res.json({ success: true, message: 'Sesión cerrada exitosamente' });
 });
 
-// Update profile
+// Actualizar perfil
 router.put('/profile', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(401).json({ error: 'Autenticación requerida' });
     }
 
     const updateData = updateProfileSchema.parse(req.body);
 
-    // Get current user for validation
+    // Obtener usuario actual para validación
     const currentUser = await prisma.user.findUnique({
       where: { id: userId }
     });
 
     if (!currentUser) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
-    // Check if email is being changed to an existing one
+    // Verificar si el email está siendo cambiado a uno existente
     if (updateData.email && updateData.email !== currentUser.email) {
       const existingUser = await prisma.user.findUnique({
         where: { email: updateData.email }
       });
 
       if (existingUser) {
-        return res.status(400).json({ error: 'Email already exists' });
+        return res.status(400).json({ error: 'El correo electrónico ya existe' });
       }
     }
 
-    // Handle password change
+    // Manejar cambio de contraseña
     let hashedNewPassword: string | undefined;
     if (updateData.currentPassword && updateData.newPassword) {
-      // Verify current password
+      // Verificar contraseña actual
       const validPassword = await bcrypt.compare(updateData.currentPassword, currentUser.password);
       if (!validPassword) {
-        return res.status(400).json({ error: 'Current password is incorrect' });
+        return res.status(400).json({ error: 'La contraseña actual es incorrecta' });
       }
 
-      // Hash new password
+      // Hashear nueva contraseña
       const saltRounds = 12;
       hashedNewPassword = await bcrypt.hash(updateData.newPassword, saltRounds);
     }
 
-    // Prepare update data
+    // Preparar datos de actualización
     const dataToUpdate: any = {};
     if (updateData.email) dataToUpdate.email = updateData.email;
     if (updateData.name) dataToUpdate.name = updateData.name;
     if (updateData.alias !== undefined) dataToUpdate.alias = updateData.alias;
     if (hashedNewPassword) dataToUpdate.password = hashedNewPassword;
 
-    // Update user
+    // Actualizar usuario
     const updatedUser = await prisma.user.update({
       where: { id: userId },
       data: dataToUpdate,
@@ -281,25 +281,25 @@ router.put('/profile', authenticateToken, async (req: AuthRequest, res) => {
     });
 
     res.json({
-      message: 'Profile updated successfully',
+      message: 'Perfil actualizado exitosamente',
       user: updatedUser
     });
 
   } catch (error) {
-    console.error('Update profile error:', error);
+    console.error('Error al actualizar perfil:', error);
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Validation error', details: error.errors });
+      return res.status(400).json({ error: 'Error de validación', details: error.errors });
     }
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 
-// Get current user profile
+// Obtener perfil del usuario actual
 router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) {
-      return res.status(401).json({ error: 'Authentication required' });
+      return res.status(401).json({ error: 'Autenticación requerida' });
     }
 
     const user = await prisma.user.findUnique({
@@ -316,13 +316,13 @@ router.get('/profile', authenticateToken, async (req: AuthRequest, res) => {
     });
 
     if (!user) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ error: 'Usuario no encontrado' });
     }
 
     res.json({ user });
   } catch (error) {
-    console.error('Get profile error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Error al obtener perfil:', error);
+    res.status(500).json({ error: 'Error interno del servidor' });
   }
 });
 

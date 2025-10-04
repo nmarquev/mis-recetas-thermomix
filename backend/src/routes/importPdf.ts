@@ -1,8 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import { z } from 'zod';
-import { authenticateToken } from '../middleware/auth';
-import { AuthRequest } from '../types/auth';
+import { authenticateToken, AuthRequest } from '../middleware/auth';
 import { PdfProcessor } from '../services/pdfProcessor';
 import {
   PdfUploadResponse,
@@ -102,7 +101,7 @@ router.post('/upload', authenticateToken, upload.single('pdf'), async (req: Auth
 
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to process PDF file'
+      error: error instanceof Error ? error.message : 'Error al process PDF file'
     });
   }
 });
@@ -146,7 +145,7 @@ router.post('/extract', authenticateToken, async (req: AuthRequest, res) => {
       success: false,
       recipes: [],
       processedPages: 0,
-      error: error instanceof Error ? error.message : 'Failed to extract recipes from PDF'
+      error: error instanceof Error ? error.message : 'Error al extract recipes from PDF'
     });
   }
 });
@@ -188,7 +187,7 @@ router.post('/preview', authenticateToken, async (req: AuthRequest, res) => {
 
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to generate PDF preview'
+      error: error instanceof Error ? error.message : 'Error al generate PDF preview'
     });
   }
 });
@@ -216,7 +215,7 @@ router.delete('/cleanup/:fileId', authenticateToken, async (req: AuthRequest, re
 
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to cleanup PDF files'
+      error: error instanceof Error ? error.message : 'Error al cleanup PDF files'
     });
   }
 });
@@ -252,7 +251,7 @@ router.get('/status/:fileId', authenticateToken, async (req: AuthRequest, res) =
 
     res.status(500).json({
       success: false,
-      error: error instanceof Error ? error.message : 'Failed to get PDF status'
+      error: error instanceof Error ? error.message : 'Error al get PDF status'
     });
   }
 });

@@ -33,7 +33,7 @@ export class PdfProcessor {
       // Convert pages to images
       const pageImages = await this.convertPagesToImages(buffer, pdfData.numpages);
 
-      console.log(`🖼️ Converted ${pageImages.length} pages to images`);
+      console.log(`🖼️ Convertido ${pageImages.length} pages to images`);
 
       return {
         totalPages: pdfData.numpages,
@@ -42,8 +42,8 @@ export class PdfProcessor {
       };
 
     } catch (error) {
-      console.error('❌ Error processing PDF:', error);
-      throw new Error('Failed to process PDF file');
+      console.error('❌ Error procesando PDF:', error);
+      throw new Error('Error al process PDF file');
     }
   }
 
@@ -118,10 +118,10 @@ export class PdfProcessor {
 
     } catch (error) {
       console.error('❌ Error in page conversion:', error);
-      throw new Error('Failed to convert PDF pages to images');
+      throw new Error('Error al convert PDF pages to images');
     }
 
-    console.log(`🖼️ Converted ${pageImages.length} pages to images`);
+    console.log(`🖼️ Convertido ${pageImages.length} pages to images`);
     return pageImages;
   }
 
@@ -206,7 +206,7 @@ export class PdfProcessor {
    * Detect recipes using LLM multimodal analysis (to be called from routes)
    */
   async detectRecipesFromPages(pages: PdfPageData[]): Promise<PdfRecipeDetectionResult> {
-    console.log('🤖 Starting LLM-based recipe detection from PDF pages...');
+    console.log('🤖 Iniciando LLM-based recipe detection from PDF pages...');
     console.log(`📄 Processing ${pages.length} pages`);
 
     try {

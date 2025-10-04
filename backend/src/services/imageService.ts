@@ -37,7 +37,7 @@ export class ImageService {
           results.push(result);
         }
       } catch (error) {
-        console.error(`Failed to download image ${imageUrl}:`, error);
+        console.error(`Error al download image ${imageUrl}:`, error);
         // Continue with other images even if one fails
       }
     }
@@ -55,7 +55,7 @@ export class ImageService {
     try {
       // Validate URL
       if (!this.isValidImageUrl(imageUrl)) {
-        throw new Error('Invalid image URL');
+        throw new Error('Imagen inválida URL');
       }
 
       // Download image

@@ -52,10 +52,10 @@ export class LLMService {
       console.log('🌐 Fetching web content...');
       const html = await this.fetchWebContent(url);
       console.log('✅ Web content fetched successfully');
-      console.log('📏 Content length:', html.length, 'characters');
+      console.log('📏 Content longitud:', html.length, 'characters');
 
       // Extract recipe data with LLM
-      console.log('🤖 Starting LLM extraction...');
+      console.log('🤖 Iniciando LLM extraction...');
       const recipeData = await this.extractRecipeWithLLM(html, url);
 
       console.log('🎉 RECIPE EXTRACTION COMPLETED SUCCESSFULLY');
@@ -68,7 +68,7 @@ export class LLMService {
       console.error('❌ Error:', error);
       console.error('📍 URL that failed:', url);
       console.error('=====================================\n');
-      throw new Error(`Failed to extract recipe: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Error al extract recipe: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   }
 
@@ -91,7 +91,7 @@ export class LLMService {
       const decoder = new TextDecoder('utf-8');
       return decoder.decode(buffer);
     } catch (error) {
-      throw new Error(`Failed to fetch content from URL: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      throw new Error(`Error al fetch content from URL: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     }
   }
 
@@ -126,7 +126,10 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
     console.log('\n📝 USER PROMPT (first 500 chars):');
     console.log('---');
     console.log(prompt.substring(0, 500) + (prompt.length > 500 ? '...[truncated]' : ''));
-    console.log('\n🚀 Sending request to OpenAI...');
+    console.log('\n🚀 Enviando solicitud a OpenAI...');
+
+    let responseContent: string | undefined;
+    let parsedResponse: any;
 
     try {
       const completion = await this.openai.chat.completions.create({
@@ -164,23 +167,22 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
       console.log('\n✅ LLM RESPONSE RECEIVED');
       console.log('💰 Usage:', completion.usage);
 
-      const responseContent = completion.choices[0]?.message?.content;
+      responseContent = completion.choices[0]?.message?.content;
 
       console.log('\n📋 RAW LLM RESPONSE:');
       console.log('---');
       console.log(responseContent);
       console.log('\n=== 🤖 LLM REQUEST END ===\n');
       if (!responseContent) {
-        throw new Error('Empty response from LLM');
+        throw new Error('Respuesta vacía de LLM');
       }
 
       // Parse and validate response
       console.log('🔄 Parsing JSON response...');
-      let parsedResponse;
       try {
         parsedResponse = JSON.parse(responseContent);
       } catch (parseError) {
-        throw new SyntaxError('Invalid JSON response from LLM');
+        throw new SyntaxError('JSON inválido respuesta de LLM');
       }
 
       console.log('🔍 Parsed response keys:', Object.keys(parsedResponse));
@@ -200,23 +202,23 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
 
       console.log('📊 Extracted recipe summary:');
       console.log('  - Title:', validatedData.title);
-      console.log('  - Ingredients count:', validatedData.ingredients.length);
-      console.log('  - Instructions count:', validatedData.instructions.length);
-      console.log('  - Images count:', validatedData.images.length);
-      console.log('  - Prep time:', validatedData.prepTime, 'minutes');
-      console.log('  - Servings:', validatedData.servings);
-      console.log('  - Difficulty:', validatedData.difficulty);
+      console.log('  - Cantidad de ingredientes:', validatedData.ingredients.length);
+      console.log('  - Cantidad de instrucciones:', validatedData.instructions.length);
+      console.log('  - Cantidad de imágenes:', validatedData.images.length);
+      console.log('  - Tiempo de preparación:', validatedData.prepTime, 'minutos');
+      console.log('  - Porciones:', validatedData.servings);
+      console.log('  - Dificultad:', validatedData.difficulty);
 
       // Transform to our interface
       return {
         title: validatedData.title,
         description: validatedData.description,
-        images: validatedData.images,
-        ingredients: validatedData.ingredients.map((ing, index) => ({
+        images: (validatedData.images || []).filter(img => img.url && typeof img.order === 'number') as any[],
+        ingredients: validatedData.ingredients.filter(ing => ing.name && ing.amount).map((ing, index) => ({
           ...ing,
           order: index + 1
-        })),
-        instructions: validatedData.instructions.sort((a, b) => a.step - b.step),
+        })) as any[],
+        instructions: validatedData.instructions.filter(inst => inst.description && typeof inst.step === 'number').sort((a, b) => a.step - b.step) as any[],
         prepTime: validatedData.prepTime,
         cookTime: validatedData.cookTime,
         servings: validatedData.servings,
@@ -236,17 +238,17 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
         });
         console.error('📋 Raw parsed response that failed validation:');
         console.error(JSON.stringify(parsedResponse || 'undefined', null, 2));
-        throw new Error('Invalid recipe data extracted from page');
+        throw new Error('Datos de receta inválidos extraídos de la página');
       }
 
       if (error instanceof SyntaxError) {
         console.error('🔧 JSON parse error details:', error.message);
         console.error('📋 Raw response that failed to parse:');
         console.error(responseContent);
-        throw new Error('Invalid response format from LLM');
+        throw new Error('Formato de respuesta inválido de LLM');
       }
 
-      console.error('🚨 Unexpected error:', error);
+      console.error('🚨 Error inesperado:', error);
       throw error;
     }
   }

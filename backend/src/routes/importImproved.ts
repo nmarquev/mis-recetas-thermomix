@@ -38,7 +38,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         processedImages = await imageService.downloadAndStoreImages(imageUrls);
         console.log(`Successfully processed ${processedImages.length} images`);
       } catch (imageError) {
-        console.error('Image processing error:', imageError);
+        console.error('Error al procesar imágenes:', imageError);
         // Continue without images if they fail
       }
     }
@@ -82,17 +82,17 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
   } catch (error) {
     console.error('Import error:', error);
 
-    let errorMessage = 'Failed to import recipe';
+    let errorMessage = 'Error al import recipe';
     let statusCode = 500;
 
     if (error instanceof z.ZodError) {
-      errorMessage = 'Invalid URL provided';
+      errorMessage = 'URL inválida provided';
       statusCode = 400;
     } else if (error instanceof Error) {
       errorMessage = error.message;
       if (error.message.includes('No valid recipe found')) {
         statusCode = 404;
-      } else if (error.message.includes('Failed to fetch')) {
+      } else if (error.message.includes('Error al fetch')) {
         statusCode = 400;
       }
     }
@@ -136,7 +136,7 @@ router.post('/validate-url', authenticateToken, async (req: AuthRequest, res) =>
     }
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return res.status(400).json({ error: 'Invalid URL format' });
+      return res.status(400).json({ error: 'URL inválida format' });
     }
     res.status(500).json({ error: 'Internal server error' });
   }

@@ -85,7 +85,7 @@ router.post('/profile-photo', authenticateToken, upload.single('profilePhoto'), 
         }
       }
     } catch (cleanupError) {
-      console.warn('Failed to clean up old profile photo:', cleanupError);
+      console.warn('Error al clean up old profile photo:', cleanupError);
     }
 
     res.json({
@@ -102,7 +102,7 @@ router.post('/profile-photo', authenticateToken, upload.single('profilePhoto'), 
       fs.unlinkSync(req.file.path);
     }
 
-    res.status(500).json({ error: 'Failed to upload profile photo' });
+    res.status(500).json({ error: 'Error al upload profile photo' });
   }
 });
 
@@ -140,7 +140,7 @@ router.delete('/profile-photo', authenticateToken, async (req: AuthRequest, res)
           fs.unlinkSync(photoPath);
         }
       } catch (deleteError) {
-        console.warn('Failed to delete profile photo file:', deleteError);
+        console.warn('Error al delete profile photo file:', deleteError);
       }
     }
 
@@ -151,7 +151,7 @@ router.delete('/profile-photo', authenticateToken, async (req: AuthRequest, res)
 
   } catch (error) {
     console.error('Profile photo deletion error:', error);
-    res.status(500).json({ error: 'Failed to delete profile photo' });
+    res.status(500).json({ error: 'Error al delete profile photo' });
   }
 });
 

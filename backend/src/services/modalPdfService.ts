@@ -445,7 +445,7 @@ export class ModalPdfService {
     let browser;
 
     try {
-      console.log('🎯 Iniciando generación de PDF modal para:', recipe.title);
+      console.log('🎯 Iniciando generation de PDF modal para:', recipe.title);
 
       browser = await puppeteer.launch({
         headless: true,
@@ -460,7 +460,7 @@ export class ModalPdfService {
         ]
       });
 
-      console.log('🌐 Browser lanzado exitosamente');
+      console.log('🌐 Browser lanzado successfully');
 
       const page = await browser.newPage();
       const html = await this.generateModalHtml(recipe);
@@ -479,11 +479,11 @@ export class ModalPdfService {
 
       // Wait for all images to load
       try {
-        await page.waitForFunction(() => {
+        await page.waitForFunction(`() => {
           const images = Array.from(document.images);
           return images.length === 0 || images.every(img => img.complete);
-        }, { timeout: 15000 });
-        console.log('✅ Todas las imágenes cargadas exitosamente');
+        }`, { timeout: 15000 });
+        console.log('✅ Todas las imágenes cargadas successfully');
       } catch (error) {
         console.log('⚠️ Timeout esperando imágenes, continuando...');
       }
@@ -505,7 +505,7 @@ export class ModalPdfService {
         preferCSSPageSize: true
       });
 
-      console.log('✅ PDF modal generado exitosamente, tamaño:', pdfBuffer.length, 'bytes');
+      console.log('✅ PDF modal generado successfully, tamaño:', pdfBuffer.length, 'bytes');
 
       // Simple buffer validation
       if (!pdfBuffer || pdfBuffer.length === 0) {
@@ -514,8 +514,8 @@ export class ModalPdfService {
 
       return pdfBuffer;
     } catch (error) {
-      console.error('Error generating modal PDF:', error);
-      throw new Error(`Failed to generate modal PDF: ${error.message}`);
+      console.error('Error generando modal PDF:', error);
+      throw new Error(`Error al generate modal PDF: ${error.message}`);
     } finally {
       if (browser) {
         await browser.close();

@@ -43,10 +43,10 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
       try {
         const imageUrls = recipeData.images.map(img => img.url);
         processedImages = await imageService.downloadAndStoreImages(imageUrls);
-        console.log(`📸 Successfully processed ${processedImages.length} images`);
+        console.log(`📸 Procesadas exitosamente ${processedImages.length} imágenes`);
       } catch (imageError) {
-        console.error('❌ Image processing error:', imageError);
-        // Continue without images if they fail to download
+        console.error('❌ Error al procesar imágenes:', imageError);
+        // Continuar sin imágenes si fallan al descargar
       }
     }
 
@@ -146,15 +146,15 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     });
 
   } catch (error) {
-    console.error('💥 Bookmarklet import error:', error);
+    console.error('💥 Error en importación HTML:', error);
 
-    let errorMessage = 'Failed to import recipe from HTML';
+    let errorMessage = 'Error al importar receta desde HTML';
     let statusCode = 500;
 
     if (error instanceof z.ZodError) {
-      errorMessage = 'Invalid HTML data provided';
+      errorMessage = 'Datos HTML inválidos proporcionados';
       statusCode = 400;
-      console.error('📋 Validation errors:', error.errors);
+      console.error('📋 Errores de validación:', error.errors);
     } else if (error instanceof Error) {
       errorMessage = error.message;
       if (error.message.includes('No valid recipe found')) {
@@ -165,7 +165,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     res.status(statusCode).json({
       success: false,
       error: errorMessage,
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Error desconocido'
     });
   }
 });

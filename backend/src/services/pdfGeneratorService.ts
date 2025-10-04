@@ -269,7 +269,7 @@ export class PdfGeneratorService {
     let browser;
 
     try {
-      console.log('🎯 Iniciando generación de PDF para:', recipe.title);
+      console.log('🎯 Iniciando generation de PDF para:', recipe.title);
 
       browser = await puppeteer.launch({
         headless: true,
@@ -284,7 +284,7 @@ export class PdfGeneratorService {
         ]
       });
 
-      console.log('🌐 Browser lanzado exitosamente');
+      console.log('🌐 Browser lanzado successfully');
 
       const page = await browser.newPage();
       const html = await this.generateRecipeHtml(recipe);
@@ -303,14 +303,14 @@ export class PdfGeneratorService {
 
       // Wait for all images to load with better error handling
       try {
-        await page.waitForFunction(() => {
+        await page.waitForFunction(`() => {
           const images = Array.from(document.images);
-          console.log(`Cargando ${images.length} imágenes...`);
+          console.log(\`Cargando \${images.length} imágenes...\`);
           const loadedImages = images.filter(img => img.complete && img.naturalWidth > 0);
-          console.log(`${loadedImages.length} de ${images.length} imágenes cargadas`);
+          console.log(\`\${loadedImages.length} de \${images.length} imágenes cargadas\`);
           return images.length === 0 || images.every(img => img.complete);
-        }, { timeout: 15000 });
-        console.log('✅ Todas las imágenes cargadas exitosamente');
+        }`, { timeout: 15000 });
+        console.log('✅ Todas las imágenes cargadas successfully');
       } catch (error) {
         console.log('⚠️ Timeout esperando imágenes, continuando con las imágenes cargadas...');
       }
@@ -331,7 +331,7 @@ export class PdfGeneratorService {
         printBackground: true
       });
 
-      console.log('✅ PDF generado exitosamente, tamaño:', pdfBuffer.length, 'bytes');
+      console.log('✅ PDF generado successfully, tamaño:', pdfBuffer.length, 'bytes');
 
       // Simple buffer validation only
       if (!pdfBuffer || pdfBuffer.length === 0) {
@@ -341,8 +341,8 @@ export class PdfGeneratorService {
       console.log('✅ PDF generated successfully, size:', pdfBuffer.length, 'bytes');
       return pdfBuffer;
     } catch (error) {
-      console.error('Error generating PDF:', error);
-      throw new Error(`Failed to generate PDF: ${error.message}`);
+      console.error('Error generando PDF:', error);
+      throw new Error(`Error al generate PDF: ${error.message}`);
     } finally {
       if (browser) {
         await browser.close();

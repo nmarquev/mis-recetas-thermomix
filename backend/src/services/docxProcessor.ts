@@ -26,7 +26,7 @@ export class DocxProcessor {
 
       const images: string[] = [];
 
-      // Extract HTML with images converted to base64
+      // Extract HTML with images convertido to base64
       const htmlResult = await mammoth.convertToHtml({ buffer }, {
         convertImage: mammoth.images.imgElement(async (image) => {
           try {
@@ -41,7 +41,7 @@ export class DocxProcessor {
 
             return { src: dataUrl };
           } catch (error) {
-            console.warn('⚠️ Failed to extract image:', error);
+            console.warn('⚠️ Error al extract image:', error);
             return { src: '' };
           }
         })
@@ -51,7 +51,7 @@ export class DocxProcessor {
       const textResult = await mammoth.extractRawText({ buffer });
       const fullText = textResult.value;
 
-      console.log(`📏 Extracted text length: ${fullText.length} characters`);
+      console.log(`📏 Extracted text longitud: ${fullText.length} characters`);
       console.log(`🖼️ Extracted ${images.length} images from DOCX`);
 
       // Split into pages (approximate - DOCX doesn't have strict page breaks)
@@ -68,7 +68,7 @@ export class DocxProcessor {
       };
     } catch (error) {
       console.error('❌ Error processing DOCX:', error);
-      throw new Error('Failed to process DOCX file');
+      throw new Error('Error al process DOCX file');
     }
   }
 

@@ -40,12 +40,15 @@ router.post('/calculate', authenticateToken, async (req: AuthRequest, res) => {
     console.log('🍽️ Original servings:', data.servings);
     console.log('🍽️ Capped servings for calculation:', cappedServings);
 
-    const result = await llmService.calculateNutrition(data.ingredients, cappedServings);
+    // Filter valid ingredients with required fields
+    const validIngredients = data.ingredients.filter(ing => ing.name && ing.amount) as { name: string; amount: string; unit?: string; }[];
+
+    const result = await llmService.calculateNutrition(validIngredients, cappedServings);
 
     if (!result.success) {
       console.error('❌ Nutrition calculation failed:', result.error);
       return res.status(500).json({
-        error: 'Failed to calculate nutrition',
+        error: 'Error al calculate nutrition',
         details: result.error
       });
     }
@@ -75,7 +78,7 @@ router.post('/calculate', authenticateToken, async (req: AuthRequest, res) => {
 
     res.status(500).json({
       error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      details: error instanceof Error ? error.message : 'Error desconocido'
     });
   }
 });

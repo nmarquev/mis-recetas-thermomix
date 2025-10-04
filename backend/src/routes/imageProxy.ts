@@ -164,7 +164,7 @@ router.get('/image', async (req, res) => {
       } catch (error) {
         console.log(`❌ Strategy ${i + 1} failed for:`, url,
           axios.isAxiosError(error) ?
-            `HTTP ${error.response?.status || 'Network Error'}` :
+            `HTTP ${error.response?.status || 'Error de red'}` :
             (error instanceof Error ? error.message : String(error))
         );
         lastError = error;
@@ -214,13 +214,13 @@ router.get('/image', async (req, res) => {
 
     if (error instanceof z.ZodError) {
       return res.status(400).json({
-        error: 'Invalid URL',
+        error: 'URL inválida',
         details: error.errors
       });
     }
 
     res.status(500).json({
-      error: 'Failed to fetch image',
+      error: 'Error al fetch image',
       message: 'An error occurred while fetching the image'
     });
   }

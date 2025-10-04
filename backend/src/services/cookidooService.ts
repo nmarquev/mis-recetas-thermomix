@@ -1,4 +1,4 @@
-import { LLMService } from './llmService';
+import { LLMServiceImproved } from './llmServiceImproved';
 
 export interface CookidooAuth {
   username: string;
@@ -12,11 +12,11 @@ export interface CookidooSession {
 }
 
 export class CookidooService {
-  private llmService: LLMService;
+  private llmService: LLMServiceImproved;
   private sessions: Map<string, CookidooSession> = new Map();
 
   constructor() {
-    this.llmService = new LLMService();
+    this.llmService = new LLMServiceImproved();
   }
 
   async extractRecipeWithAuth(url: string, auth: CookidooAuth): Promise<any> {
@@ -57,7 +57,7 @@ export class CookidooService {
       });
 
       if (!loginPageResponse.ok) {
-        throw new Error(`Failed to load login page: ${loginPageResponse.status}`);
+        throw new Error(`Error al load login page: ${loginPageResponse.status}`);
       }
 
       const loginPageHtml = await loginPageResponse.text();
@@ -88,7 +88,7 @@ export class CookidooService {
         redirect: 'manual' // Para capturar redirects
       });
 
-      // 4. Verificar login exitoso
+      // 4. Verificar login successful
       const authCookies = this.extractCookiesFromResponse(loginResponse);
       const allCookies = this.combineCookies(loginCookies, authCookies);
 
@@ -144,7 +144,7 @@ export class CookidooService {
         // Verificar que tenemos contenido autenticado
         if (html.includes('is-authenticated') && !html.includes('is-unauthenticated')) {
           console.log('✅ Authenticated content received');
-          console.log('📏 Content length:', html.length, 'characters');
+          console.log('📏 Content longitud:', html.length, 'characters');
           return html;
         } else {
           console.log('⚠️ Content appears to be unauthenticated, retrying...');
@@ -166,7 +166,7 @@ export class CookidooService {
       }
     }
 
-    throw new Error('Failed to fetch authenticated content after all retries');
+    throw new Error('Error al fetch authenticated content after all retries');
   }
 
   private getBrowserHeaders(): Record<string, string> {

@@ -89,7 +89,7 @@ router.get('/test-recipe-pdf', async (req, res) => {
 
     console.log('📝 Generando PDF con servicio real...');
 
-    const pdfBuffer = await PdfGeneratorService.generateRecipePdf(testRecipe);
+    const pdfBuffer = await PdfGeneratorService.generateRecipePdf(testRecipe as any);
 
     console.log(`✅ PDF con servicio real generado. Tamaño: ${pdfBuffer.length} bytes`);
 
@@ -157,7 +157,7 @@ router.get('/test-pdfkit', async (req, res) => {
 
     console.log('📝 Generando PDF con PDFKit mejorado...');
 
-    const pdfBuffer = await PdfKitService.generateRecipePdf(testRecipe);
+    const pdfBuffer = await PdfKitService.generateRecipePdf(testRecipe as any);
 
     console.log(`✅ PDF con PDFKit mejorado generado. Tamaño: ${pdfBuffer.length} bytes`);
 
