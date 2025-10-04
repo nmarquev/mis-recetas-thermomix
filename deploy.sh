@@ -39,16 +39,22 @@ npm run build
 echo -e "${YELLOW}🔄 Paso 5: Reiniciando servicio PM2...${NC}"
 cd ..
 
-# Verificar si el proceso PM2 existe, si no crearlo
-if pm2 list | grep -q "$APP_NAME"; then
+# Verificar si el proceso PM2 existe
+if pm2 describe $APP_NAME > /dev/null 2>&1; then
     echo "Reiniciando proceso PM2 existente..."
-    pm2 restart $APP_NAME
+    pm2 restart $APP_NAME --update-env
+    pm2 save
 else
     echo "Creando nuevo proceso PM2..."
-    pm2 start backend/dist/index.js --name $APP_NAME
+    # Crear proceso con configuración básica
+    pm2 start backend/dist/index.js \
+        --name $APP_NAME \
+        --time \
+        --max-memory-restart 500M \
+        --error backend/logs/error.log \
+        --output backend/logs/output.log
+    pm2 save
 fi
-
-pm2 save
 
 echo -e "${YELLOW}🧹 Paso 6: Limpieza...${NC}"
 # Limpiar node_modules de desarrollo
