@@ -58,10 +58,20 @@ async function checkAuthStatus() {
 
 // Update extension icon based on auth status
 function updateIcon(authenticated) {
-  // Always use the same icon - no gray icon needed
-  // Use badge to show auth status instead
-  chrome.action.setBadgeText({ text: authenticated ? '' : '!' });
-  chrome.action.setBadgeBackgroundColor({ color: authenticated ? '#10B981' : '#EF4444' });
+  // Use different icons for authenticated vs not authenticated
+  const iconSet = authenticated ? {
+    '16': 'icons/icon16.png',
+    '32': 'icons/icon32.png',
+    '48': 'icons/icon48.png',
+    '128': 'icons/icon128.png'
+  } : {
+    '16': 'icons/icon16-gray.png',
+    '32': 'icons/icon32-gray.png',
+    '48': 'icons/icon48-gray.png',
+    '128': 'icons/icon128-gray.png'
+  };
+
+  chrome.action.setIcon({ path: iconSet });
 
   const title = authenticated
     ? 'TasteBox - Click to import recipe'

@@ -12,6 +12,7 @@
     "start": "start.bat",
     "start:backend": "cd backend && npm run dev",
     "start:frontend": "npm run dev",
+    "generate-icons": "node scripts/generate-extension-icons.mjs",
     "package-extension": "node scripts/package-extension.js"
   },
   "dependencies": {
