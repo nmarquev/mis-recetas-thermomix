@@ -58,24 +58,21 @@ async function checkAuthStatus() {
 
 // Update extension icon based on auth status
 function updateIcon(authenticated) {
-  // Use different icons for authenticated vs not authenticated
-  const iconSet = authenticated ? {
-    '16': 'icons/icon16.png',
-    '32': 'icons/icon32.png',
-    '48': 'icons/icon48.png',
-    '128': 'icons/icon128.png'
-  } : {
-    '16': 'icons/icon16-gray.png',
-    '32': 'icons/icon32-gray.png',
-    '48': 'icons/icon48-gray.png',
-    '128': 'icons/icon128-gray.png'
-  };
+  // Keep icon always the same (orange TasteBox logo)
+  // Use badge to indicate authentication status instead
 
-  chrome.action.setIcon({ path: iconSet });
+  if (authenticated) {
+    // Authenticated: no badge, just the orange icon
+    chrome.action.setBadgeText({ text: '' });
+  } else {
+    // Not authenticated: show "!" badge with gray background
+    chrome.action.setBadgeText({ text: '!' });
+    chrome.action.setBadgeBackgroundColor({ color: '#9CA3AF' });
+  }
 
   const title = authenticated
-    ? 'TasteBox - Click to import recipe'
-    : 'TasteBox - Please log in';
+    ? 'TasteBox - Guarda recetas'
+    : 'TasteBox - Inicia sesión para guardar recetas';
   chrome.action.setTitle({ title });
 }
 
