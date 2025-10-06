@@ -14,8 +14,7 @@
     "http://127.0.0.1:3005/*",
     "http://192.168.0.10:3005/*",
     "https://tastebox.local:8081/*",
-    "https://tastebox.beweb.com.ar/*",
-    "https://tastebox.beweb.com.ar:5000/*"
+    "https://tastebox.beweb.com.ar/*"
   ],
   "background": {
     "service_worker": "js/background.js"

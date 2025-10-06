@@ -19,7 +19,7 @@ const CONFIG = {
   },
 
   production: {
-    apiUrl: 'https://tastebox.beweb.com.ar:5000',
+    apiUrl: 'https://tastebox.beweb.com.ar',
     frontendUrl: 'https://tastebox.beweb.com.ar'
   },
 
