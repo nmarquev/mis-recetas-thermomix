@@ -173,15 +173,16 @@ async function handleImportRecipe(url, html) {
   }
 
   try {
-    const response = await fetch(CONFIG.getEndpoint('importHtml'), {
+    // Use /api/import-improved (same as web app) instead of /api/import-html
+    // This ensures consistent extraction with better results
+    const response = await fetch(`${CONFIG.getApiUrl()}/api/import-improved`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${authToken}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        url,
-        html
+        url  // Only send URL, let backend fetch HTML with proper User-Agent
       }),
       credentials: 'include'
     });
