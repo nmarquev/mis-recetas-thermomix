@@ -4,7 +4,7 @@ Extensión Chrome para importar recetas desde cualquier sitio web directamente a
 
 ## 🌟 Características
 
-- **Importación con 1 click**: Detecta automáticamente recetas en la página que estás visitando
+- **Importación con 1 click**: Importa la receta de la página actual con un solo click
 - **Compatible con cualquier sitio**: Funciona en Cookidoo, Instagram, blogs de cocina y más
 - **Detección inteligente**: Usa IA para extraer ingredientes, pasos y configuraciones Thermomix
 - **Autenticación segura**: Inicia sesión una vez y la extensión recuerda tu sesión
@@ -42,31 +42,46 @@ Extensión Chrome para importar recetas desde cualquier sitio web directamente a
 
 3. Carga la extensión desde `extension/` en Chrome (mismo proceso que arriba)
 
-4. Activa el toggle "Modo Desarrollo" en el popup de la extensión
+4. **Configura el backend para HTTP (desarrollo):**
 
-5. Configura los puertos personalizados si es necesario:
+   El backend debe configurarse para usar HTTP en modo desarrollo (sin SSL):
+
+   - Edita `backend/.env`
+   - Agrega o verifica: `SSL_ENABLED=false`
+   - Reinicia el servidor backend
+   - Verifica que muestre: `🚀 HTTP Server running on port 3005 (SSL disabled)`
+
+   > **Nota:** En desarrollo usamos HTTP para evitar problemas con certificados SSL autofirmados en Chrome extensions. En producción siempre usa HTTPS.
+
+5. Activa el toggle "Modo Desarrollo" en el popup de la extensión
+
+6. Configura la URL y puertos personalizados si es necesario:
+   - URL Backend (default: http://localhost)
    - Puerto Backend (default: 3005)
+   - URL Frontend (default: http://localhost)
    - Puerto Frontend (default: 8080)
 
 ## 🔧 Configuración
 
 ### Producción (Default)
-- API: `https://tastebox.beweb.com.ar:5000`
+- API: `https://tastebox.beweb.com.ar` (Nginx maneja el proxy al puerto 5000)
 - Frontend: `https://tastebox.beweb.com.ar`
 
 ### Desarrollo
-- API: `https://localhost:[puerto-configurado]` (default: 3005)
+- API: `http://localhost:[puerto-configurado]` (default: 3005, SSL deshabilitado)
 - Frontend: `http://localhost:[puerto-configurado]` (default: 8080)
 
 ## 🚀 Uso
 
 1. **Inicia sesión**: Click en el ícono de la extensión y ingresa tus credenciales de TasteBox
 
-2. **Navega a una receta**: Visita cualquier sitio web con recetas (ej: cookidoo.international, cookpad.com)
+2. **Navega a una receta**: Visita cualquier sitio web con recetas (ej: cookidoo.international, cookpad.com, Instagram)
 
-3. **Importa**: Si la extensión detecta una receta, verás un botón naranja flotante. Click para importar
+3. **Importa**: Click en el ícono de la extensión y presiona el botón "Importar receta"
 
-4. **Verifica**: La receta se importará automáticamente a tu colección TasteBox
+4. **Espera**: La extensión procesará la página y extraerá la receta automáticamente
+
+5. **Verifica**: Si se encuentra una receta, se importará automáticamente a tu colección TasteBox
 
 ## 🛠️ Desarrollo
 

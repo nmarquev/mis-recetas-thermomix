@@ -20,14 +20,14 @@ chrome.runtime.onStartup.addListener(() => {
 async function checkAuthStatus() {
   try {
     // Load environment settings from storage
-    const result = await chrome.storage.local.get(['authToken', 'isDevelopment', 'customPorts']);
+    const result = await chrome.storage.local.get(['authToken', 'isDevelopment', 'customDevelopment']);
     authToken = result.authToken || null;
 
     // Update CONFIG with current settings
     const isDev = result.isDevelopment !== undefined ? result.isDevelopment : CONFIG.isDevelopment;
     CONFIG.isDevelopment = isDev;
-    if (result.customPorts) {
-      CONFIG.setDevelopmentPorts(result.customPorts.backend, result.customPorts.frontend);
+    if (result.customDevelopment) {
+      CONFIG.setDevelopmentConfig(result.customDevelopment);
     }
 
     if (authToken) {
@@ -123,13 +123,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 async function handleLogin(email, password) {
   try {
     // Load current environment settings from storage before login
-    const result = await chrome.storage.local.get(['isDevelopment', 'customPorts']);
+    const result = await chrome.storage.local.get(['isDevelopment', 'customDevelopment']);
     const isDev = result.isDevelopment !== undefined ? result.isDevelopment : CONFIG.isDevelopment;
 
     // Update CONFIG with current settings
     CONFIG.isDevelopment = isDev;
-    if (result.customPorts) {
-      CONFIG.setDevelopmentPorts(result.customPorts.backend, result.customPorts.frontend);
+    if (result.customDevelopment) {
+      CONFIG.setDevelopmentConfig(result.customDevelopment);
     }
 
     console.log('🔧 Login using environment:', isDev ? 'Development' : 'Production');
@@ -195,13 +195,13 @@ async function handleImportRecipe(url, html) {
 
   try {
     // Load current environment settings from storage
-    const result = await chrome.storage.local.get(['isDevelopment', 'customPorts']);
+    const result = await chrome.storage.local.get(['isDevelopment', 'customDevelopment']);
     const isDev = result.isDevelopment !== undefined ? result.isDevelopment : CONFIG.isDevelopment;
 
     // Update CONFIG with current settings
     CONFIG.isDevelopment = isDev;
-    if (result.customPorts) {
-      CONFIG.setDevelopmentPorts(result.customPorts.backend, result.customPorts.frontend);
+    if (result.customDevelopment) {
+      CONFIG.setDevelopmentConfig(result.customDevelopment);
     }
 
     console.log('🔧 Import using environment:', isDev ? 'Development' : 'Production');

@@ -29,7 +29,7 @@ async function initializePopup() {
   }
 
   // Load environment setting
-  const result = await chrome.storage.local.get(['isDevelopment', 'customPorts']);
+  const result = await chrome.storage.local.get(['isDevelopment', 'customDevelopment']);
   const isDev = result.isDevelopment !== undefined ? result.isDevelopment : CONFIG.isDevelopment;
 
   // Set toggle state for both views (login and authenticated)
@@ -40,32 +40,52 @@ async function initializePopup() {
 
   CONFIG.isDevelopment = isDev;
 
-  // Load custom ports if in development mode for both views
-  if (result.customPorts) {
-    CONFIG.setDevelopmentPorts(result.customPorts.backend, result.customPorts.frontend);
+  // Load custom development config if in development mode for both views
+  if (result.customDevelopment) {
+    CONFIG.setDevelopmentConfig(result.customDevelopment);
 
-    // Authenticated view
-    const backendPort = document.getElementById('backend-port');
+    // Authenticated view - only set if elements exist
+    const apiUrl = document.getElementById('api-url');
+    const apiPort = document.getElementById('api-port');
+    const frontendUrl = document.getElementById('frontend-url');
     const frontendPort = document.getElementById('frontend-port');
-    if (backendPort) backendPort.value = result.customPorts.backend;
-    if (frontendPort) frontendPort.value = result.customPorts.frontend;
 
-    // Login view
-    const backendPortLogin = document.getElementById('backend-port-login');
+    if (apiUrl) apiUrl.value = result.customDevelopment.apiUrl || CONFIG.defaultDevelopment.apiUrl;
+    if (apiPort) apiPort.value = result.customDevelopment.apiPort || CONFIG.defaultDevelopment.apiPort;
+    if (frontendUrl) frontendUrl.value = result.customDevelopment.frontendUrl || CONFIG.defaultDevelopment.frontendUrl;
+    if (frontendPort) frontendPort.value = result.customDevelopment.frontendPort || CONFIG.defaultDevelopment.frontendPort;
+
+    // Login view - only set if elements exist
+    const apiUrlLogin = document.getElementById('api-url-login');
+    const apiPortLogin = document.getElementById('api-port-login');
+    const frontendUrlLogin = document.getElementById('frontend-url-login');
     const frontendPortLogin = document.getElementById('frontend-port-login');
-    if (backendPortLogin) backendPortLogin.value = result.customPorts.backend;
-    if (frontendPortLogin) frontendPortLogin.value = result.customPorts.frontend;
+
+    if (apiUrlLogin) apiUrlLogin.value = result.customDevelopment.apiUrl || CONFIG.defaultDevelopment.apiUrl;
+    if (apiPortLogin) apiPortLogin.value = result.customDevelopment.apiPort || CONFIG.defaultDevelopment.apiPort;
+    if (frontendUrlLogin) frontendUrlLogin.value = result.customDevelopment.frontendUrl || CONFIG.defaultDevelopment.frontendUrl;
+    if (frontendPortLogin) frontendPortLogin.value = result.customDevelopment.frontendPort || CONFIG.defaultDevelopment.frontendPort;
   } else {
-    // Set defaults for both views
-    const backendPort = document.getElementById('backend-port');
+    // Set defaults for both views - only if elements exist
+    const apiUrl = document.getElementById('api-url');
+    const apiPort = document.getElementById('api-port');
+    const frontendUrl = document.getElementById('frontend-url');
     const frontendPort = document.getElementById('frontend-port');
-    if (backendPort) backendPort.value = CONFIG.defaultPorts.backend;
-    if (frontendPort) frontendPort.value = CONFIG.defaultPorts.frontend;
 
-    const backendPortLogin = document.getElementById('backend-port-login');
+    if (apiUrl) apiUrl.value = CONFIG.defaultDevelopment.apiUrl;
+    if (apiPort) apiPort.value = CONFIG.defaultDevelopment.apiPort;
+    if (frontendUrl) frontendUrl.value = CONFIG.defaultDevelopment.frontendUrl;
+    if (frontendPort) frontendPort.value = CONFIG.defaultDevelopment.frontendPort;
+
+    const apiUrlLogin = document.getElementById('api-url-login');
+    const apiPortLogin = document.getElementById('api-port-login');
+    const frontendUrlLogin = document.getElementById('frontend-url-login');
     const frontendPortLogin = document.getElementById('frontend-port-login');
-    if (backendPortLogin) backendPortLogin.value = CONFIG.defaultPorts.backend;
-    if (frontendPortLogin) frontendPortLogin.value = CONFIG.defaultPorts.frontend;
+
+    if (apiUrlLogin) apiUrlLogin.value = CONFIG.defaultDevelopment.apiUrl;
+    if (apiPortLogin) apiPortLogin.value = CONFIG.defaultDevelopment.apiPort;
+    if (frontendUrlLogin) frontendUrlLogin.value = CONFIG.defaultDevelopment.frontendUrl;
+    if (frontendPortLogin) frontendPortLogin.value = CONFIG.defaultDevelopment.frontendPort;
   }
 
   // Show/hide dev ports config based on environment for both views
@@ -127,6 +147,7 @@ function showNotAuthenticatedView() {
 
 // Get user initials
 function getUserInitials(name) {
+  if (!name) return 'U';
   return name
     .split(' ')
     .map(n => n[0])
@@ -174,11 +195,11 @@ function setupEventListeners() {
     console.log('Environment changed to:', isDev ? 'Development' : 'Production');
   });
 
-  // Save ports button (authenticated view)
-  document.getElementById('save-ports-button')?.addEventListener('click', handleSavePorts);
+  // Save config button (authenticated view)
+  document.getElementById('save-config-button')?.addEventListener('click', handleSaveConfig);
 
-  // Save ports button (login view)
-  document.getElementById('save-ports-button-login')?.addEventListener('click', handleSavePortsLogin);
+  // Save config button (login view)
+  document.getElementById('save-config-button-login')?.addEventListener('click', handleSaveConfigLogin);
 }
 
 // Toggle dev ports configuration visibility
@@ -196,48 +217,64 @@ function toggleDevPortsConfig(show) {
   }
 }
 
-// Handle save custom ports
-async function handleSavePorts() {
-  const backendPort = parseInt(document.getElementById('backend-port').value) || CONFIG.defaultPorts.backend;
-  const frontendPort = parseInt(document.getElementById('frontend-port').value) || CONFIG.defaultPorts.frontend;
+// Handle save custom development config (authenticated view)
+async function handleSaveConfig() {
+  const apiUrl = document.getElementById('api-url').value || CONFIG.defaultDevelopment.apiUrl;
+  const apiPort = parseInt(document.getElementById('api-port').value) || CONFIG.defaultDevelopment.apiPort;
+  const frontendUrl = document.getElementById('frontend-url').value || CONFIG.defaultDevelopment.frontendUrl;
+  const frontendPort = parseInt(document.getElementById('frontend-port').value) || CONFIG.defaultDevelopment.frontendPort;
 
   // Validate ports
-  if (backendPort < 1000 || backendPort > 65535 || frontendPort < 1000 || frontendPort > 65535) {
+  if (apiPort < 1000 || apiPort > 65535 || frontendPort < 1000 || frontendPort > 65535) {
     showNotification('Puertos inválidos. Deben estar entre 1000 y 65535', 'error');
     return;
   }
 
+  // Validate URLs
+  if (!apiUrl || !frontendUrl) {
+    showNotification('Las URLs no pueden estar vacías', 'error');
+    return;
+  }
+
   // Save to storage
-  const customPorts = { backend: backendPort, frontend: frontendPort };
-  await chrome.storage.local.set({ customPorts });
+  const customDevelopment = { apiUrl, apiPort, frontendUrl, frontendPort };
+  await chrome.storage.local.set({ customDevelopment });
 
   // Update CONFIG
-  CONFIG.setDevelopmentPorts(backendPort, frontendPort);
+  CONFIG.setDevelopmentConfig(customDevelopment);
 
-  showNotification(`Puertos actualizados: Backend ${backendPort}, Frontend ${frontendPort}`, 'success');
-  console.log('Custom ports saved:', customPorts);
+  showNotification(`Configuración actualizada: ${apiUrl}:${apiPort}`, 'success');
+  console.log('Custom development config saved:', customDevelopment);
 }
 
-// Handle save custom ports (login view)
-async function handleSavePortsLogin() {
-  const backendPort = parseInt(document.getElementById('backend-port-login').value) || CONFIG.defaultPorts.backend;
-  const frontendPort = parseInt(document.getElementById('frontend-port-login').value) || CONFIG.defaultPorts.frontend;
+// Handle save custom development config (login view)
+async function handleSaveConfigLogin() {
+  const apiUrl = document.getElementById('api-url-login').value || CONFIG.defaultDevelopment.apiUrl;
+  const apiPort = parseInt(document.getElementById('api-port-login').value) || CONFIG.defaultDevelopment.apiPort;
+  const frontendUrl = document.getElementById('frontend-url-login').value || CONFIG.defaultDevelopment.frontendUrl;
+  const frontendPort = parseInt(document.getElementById('frontend-port-login').value) || CONFIG.defaultDevelopment.frontendPort;
 
   // Validate ports
-  if (backendPort < 1000 || backendPort > 65535 || frontendPort < 1000 || frontendPort > 65535) {
+  if (apiPort < 1000 || apiPort > 65535 || frontendPort < 1000 || frontendPort > 65535) {
     showNotification('Puertos inválidos. Deben estar entre 1000 y 65535', 'error');
     return;
   }
 
+  // Validate URLs
+  if (!apiUrl || !frontendUrl) {
+    showNotification('Las URLs no pueden estar vacías', 'error');
+    return;
+  }
+
   // Save to storage
-  const customPorts = { backend: backendPort, frontend: frontendPort };
-  await chrome.storage.local.set({ customPorts });
+  const customDevelopment = { apiUrl, apiPort, frontendUrl, frontendPort };
+  await chrome.storage.local.set({ customDevelopment });
 
   // Update CONFIG
-  CONFIG.setDevelopmentPorts(backendPort, frontendPort);
+  CONFIG.setDevelopmentConfig(customDevelopment);
 
-  showNotification(`Puertos actualizados: Backend ${backendPort}, Frontend ${frontendPort}`, 'success');
-  console.log('Custom ports saved:', customPorts);
+  showNotification(`Configuración actualizada: ${apiUrl}:${apiPort}`, 'success');
+  console.log('Custom development config saved:', customDevelopment);
 }
 
 // Handle login

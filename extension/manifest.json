@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TasteBox - Guarda tus recetas",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Guarda recetas de cualquier web o video a tu colección TasteBox",
   "permissions": [
     "activeTab",
@@ -9,11 +9,9 @@
     "cookies"
   ],
   "host_permissions": [
-    "http://localhost:3005/*",
-    "https://localhost:3005/*",
-    "http://127.0.0.1:3005/*",
-    "http://192.168.0.10:3005/*",
-    "https://tastebox.local:8081/*",
+    "http://localhost:*/*",
+    "https://localhost:*/*",
+    "http://127.0.0.1:*/*",
     "https://tastebox.beweb.com.ar/*"
   ],
   "background": {

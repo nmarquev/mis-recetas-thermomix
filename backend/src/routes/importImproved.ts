@@ -61,14 +61,17 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
       })),
       ingredients: recipeData.ingredients.map((ingredient, index) => ({
         ...ingredient,
-        order: index + 1
+        order: index + 1,
+        section: ingredient.section || null
       })),
       instructions: recipeData.instructions.map(inst => ({
         step: inst.step,
         description: inst.description,
-        time: undefined,
-        temperature: undefined,
-        speed: undefined
+        time: inst.time || undefined,
+        temperature: inst.temperature || undefined,
+        speed: inst.speed || undefined,
+        function: inst.function || null,
+        section: inst.section || null
       })),
       tags: recipeData.tags
     };

@@ -959,7 +959,31 @@ Esta es una receta de Cookidoo.international (Thermomix). EXTRACCIÓN MEJORADA:
      "speed": "3"
    }
 
-4. TAGS - SOLO 3-4 RELEVANTES:
+4. SECCIONES/RECETAS MULTIPARTE - CRÍTICO PARA COOKIDOO:
+   Las recetas de Cookidoo SIEMPRE tienen secciones (ej: "Panecillos", "Paté", "Montaje").
+
+   🔍 CÓMO DETECTAR SECCIONES:
+   - Busca títulos/subtítulos en el HTML: <h2>, <h3>, <strong>, texto en negrita
+   - Patrones comunes: "Para X", "Ingredientes de Y", "Preparación de Z"
+   - Ejemplos: "Panecillos integrales", "Paté de shiitake", "Montaje", "Base", "Relleno"
+
+   ✅ ASIGNACIÓN OBLIGATORIA:
+   - CADA ingrediente DEBE tener su "section" (nombre de la sección a la que pertenece)
+   - CADA instrucción DEBE tener su "section" (nombre de la sección a la que pertenece)
+   - Las secciones deben coincidir entre ingredientes e instrucciones
+   - Si REALMENTE no hay secciones (muy raro), usa "section": null
+
+   📋 Ejemplo correcto:
+   ingredients: [
+     {"name": "harina", "amount": "500", "unit": "g", "section": "Panecillos"},
+     {"name": "setas", "amount": "200", "unit": "g", "section": "Paté"}
+   ]
+   instructions: [
+     {"step": 1, "description": "Mezclar harina...", "section": "Panecillos"},
+     {"step": 2, "description": "Sofreír setas...", "section": "Paté"}
+   ]
+
+5. TAGS - SOLO 3-4 RELEVANTES:
    - Ingrediente principal (ej: "pollo", "chocolate")
    - Tipo de plato (ej: "postre", "entrada")
    - Característica especial (ej: "sin gluten", "vegano")
