@@ -20,7 +20,8 @@ async function initializePopup() {
     isAuthenticated = true;
     currentUser = authStatus.user;
     showAuthenticatedView();
-    detectRecipeOnCurrentTab();
+    // Show ready state, no auto-detection
+    showReadyToImport();
   } else {
     isAuthenticated = false;
     currentUser = null;
@@ -105,6 +106,17 @@ function showAuthenticatedView() {
     document.getElementById('user-name').textContent = currentUser.name || 'Usuario';
     document.getElementById('user-email').textContent = currentUser.email;
   }
+}
+
+// Show ready to import state (no auto-detection)
+function showReadyToImport() {
+  const statusElement = document.getElementById('recipe-status');
+  const importButton = document.getElementById('import-button');
+
+  statusElement.className = 'recipe-status ready';
+  document.getElementById('status-title').textContent = 'Listo para importar';
+  document.getElementById('status-subtitle').textContent = 'Haz clic en el botón para importar esta página';
+  importButton.disabled = false;
 }
 
 // Show not authenticated view
@@ -249,7 +261,8 @@ async function handleLogin(e) {
         currentUser = response.user;
         isAuthenticated = true;
         showAuthenticatedView();
-        detectRecipeOnCurrentTab();
+        // Show ready state, don't auto-detect
+        showReadyToImport();
       } else {
         showNotification(
           response?.error || 'Error al iniciar sesión',
@@ -269,53 +282,6 @@ function handleLogout() {
   });
 }
 
-// Detect recipe on current tab
-async function detectRecipeOnCurrentTab() {
-  const statusElement = document.getElementById('recipe-status');
-  const importButton = document.getElementById('import-button');
-
-  // Set detecting state
-  statusElement.className = 'recipe-status detecting';
-  document.getElementById('status-title').textContent = 'Buscando receta...';
-  document.getElementById('status-subtitle').textContent = 'Analizando página actual';
-  importButton.disabled = true;
-
-  // Get current tab
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-  if (!tab) {
-    setRecipeStatus('not-found', 'No se pudo acceder a la pestaña', 'Intenta recargar la página');
-    return;
-  }
-
-  // Send message to content script
-  try {
-    const response = await chrome.tabs.sendMessage(tab.id, { action: 'detectRecipe' });
-
-    if (response && response.likelyRecipe) {
-      setRecipeStatus(
-        'found',
-        '¡Receta detectada!',
-        response.metadata?.title || 'Receta encontrada en esta página'
-      );
-      importButton.disabled = false;
-    } else {
-      setRecipeStatus(
-        'not-found',
-        'No se detectó una receta',
-        'Esta página no parece contener una receta'
-      );
-    }
-  } catch (error) {
-    console.error('Error detecting recipe:', error);
-    setRecipeStatus(
-      'not-found',
-      'Error al analizar página',
-      'Intenta recargar la extensión'
-    );
-  }
-}
-
 // Set recipe detection status
 function setRecipeStatus(status, title, subtitle) {
   const statusElement = document.getElementById('recipe-status');
@@ -330,49 +296,54 @@ async function handleImportClick() {
 
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  if (!tab) {
+  if (!tab || !tab.url) {
     showLoading(false);
     showNotification('No se pudo acceder a la pestaña', 'error');
     return;
   }
 
-  try {
-    const recipeData = await chrome.tabs.sendMessage(tab.id, { action: 'detectRecipe' });
+  // Directly send URL to backend, let it handle fetching and extraction
+  chrome.runtime.sendMessage(
+    {
+      action: 'importRecipe',
+      url: tab.url,
+      html: null  // Not needed, backend will fetch
+    },
+    (response) => {
+      showLoading(false);
 
-    chrome.runtime.sendMessage(
-      {
-        action: 'importRecipe',
-        url: recipeData.url,
-        html: recipeData.html
-      },
-      (response) => {
-        showLoading(false);
+      if (response && response.success) {
+        showNotification('¡Receta importada con éxito!', 'success');
 
-        if (response && response.success) {
-          showNotification('¡Receta importada con éxito!', 'success');
+        // Update status
+        setRecipeStatus(
+          'found',
+          '¡Receta importada!',
+          'La receta se guardó en tu colección'
+        );
 
-          // Update status
-          setRecipeStatus(
-            'found',
-            '¡Receta importada!',
-            'La receta se guardó en tu colección'
-          );
+        // Disable import button temporarily
+        document.getElementById('import-button').disabled = true;
 
-          // Disable import button
-          document.getElementById('import-button').disabled = true;
-        } else {
-          showNotification(
-            response?.error || 'Error al importar receta',
-            'error'
-          );
-        }
+        // Re-enable after 2 seconds in case user wants to import again
+        setTimeout(() => {
+          showReadyToImport();
+        }, 2000);
+      } else {
+        showNotification(
+          response?.error || 'No se encontró una receta en esta página',
+          'error'
+        );
+
+        // Show error state
+        setRecipeStatus(
+          'not-found',
+          'No se encontró receta',
+          response?.error || 'Esta página no contiene una receta válida'
+        );
       }
-    );
-  } catch (error) {
-    showLoading(false);
-    console.error('Import error:', error);
-    showNotification('Error al importar receta', 'error');
-  }
+    }
+  );
 }
 
 // Show/hide loading overlay
