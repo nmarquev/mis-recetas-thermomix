@@ -42,3 +42,7 @@ backend/uploads/
 
 # Claude
 .claude/
+
+# PM2 ecosystem (específico por entorno)
+ecosystem.config.cjs
+ecosystem.config.js
