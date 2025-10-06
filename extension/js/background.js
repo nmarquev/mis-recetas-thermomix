@@ -19,8 +19,16 @@ chrome.runtime.onStartup.addListener(() => {
 // Check if user is authenticated
 async function checkAuthStatus() {
   try {
-    const result = await chrome.storage.local.get(['authToken']);
+    // Load environment settings from storage
+    const result = await chrome.storage.local.get(['authToken', 'isDevelopment', 'customPorts']);
     authToken = result.authToken || null;
+
+    // Update CONFIG with current settings
+    const isDev = result.isDevelopment !== undefined ? result.isDevelopment : CONFIG.isDevelopment;
+    CONFIG.isDevelopment = isDev;
+    if (result.customPorts) {
+      CONFIG.setDevelopmentPorts(result.customPorts.backend, result.customPorts.frontend);
+    }
 
     if (authToken) {
       // Verify token is still valid
@@ -114,6 +122,19 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 // Handle login
 async function handleLogin(email, password) {
   try {
+    // Load current environment settings from storage before login
+    const result = await chrome.storage.local.get(['isDevelopment', 'customPorts']);
+    const isDev = result.isDevelopment !== undefined ? result.isDevelopment : CONFIG.isDevelopment;
+
+    // Update CONFIG with current settings
+    CONFIG.isDevelopment = isDev;
+    if (result.customPorts) {
+      CONFIG.setDevelopmentPorts(result.customPorts.backend, result.customPorts.frontend);
+    }
+
+    console.log('🔧 Login using environment:', isDev ? 'Development' : 'Production');
+    console.log('🌐 API URL:', CONFIG.getApiUrl());
+
     const response = await fetch(CONFIG.getEndpoint('login'), {
       method: 'POST',
       headers: {
@@ -173,6 +194,19 @@ async function handleImportRecipe(url, html) {
   }
 
   try {
+    // Load current environment settings from storage
+    const result = await chrome.storage.local.get(['isDevelopment', 'customPorts']);
+    const isDev = result.isDevelopment !== undefined ? result.isDevelopment : CONFIG.isDevelopment;
+
+    // Update CONFIG with current settings
+    CONFIG.isDevelopment = isDev;
+    if (result.customPorts) {
+      CONFIG.setDevelopmentPorts(result.customPorts.backend, result.customPorts.frontend);
+    }
+
+    console.log('🔧 Import using environment:', isDev ? 'Development' : 'Production');
+    console.log('🌐 API URL:', CONFIG.getApiUrl());
+
     // Use /api/import-improved (same as web app) instead of /api/import-html
     // This ensures consistent extraction with better results
     const response = await fetch(`${CONFIG.getApiUrl()}/api/import-improved`, {
