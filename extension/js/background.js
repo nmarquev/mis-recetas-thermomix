@@ -207,9 +207,9 @@ async function handleImportRecipe(url, html) {
     console.log('🔧 Import using environment:', isDev ? 'Development' : 'Production');
     console.log('🌐 API URL:', CONFIG.getApiUrl());
 
-    // Use /api/import-improved (same as web app) instead of /api/import-html
+    // Use /api/import (same as web app) instead of /api/import-html
     // This ensures consistent extraction with better results
-    const response = await fetch(`${CONFIG.getApiUrl()}/api/import-improved`, {
+    const response = await fetch(`${CONFIG.getApiUrl()}/api/import`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${authToken}`,
