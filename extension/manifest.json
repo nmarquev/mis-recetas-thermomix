@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "TasteBox Recipe Importer",
-  "version": "1.0.0",
-  "description": "Import recipes from any website to your TasteBox collection",
+  "name": "TasteBox - Guarda tus recetas",
+  "version": "1.0.1",
+  "description": "Guarda recetas de cualquier web o video a tu colección TasteBox",
   "permissions": [
     "activeTab",
     "storage",
