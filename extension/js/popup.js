@@ -30,20 +30,44 @@ async function initializePopup() {
   // Load environment setting
   const result = await chrome.storage.local.get(['isDevelopment', 'customPorts']);
   const isDev = result.isDevelopment !== undefined ? result.isDevelopment : CONFIG.isDevelopment;
-  document.getElementById('environment-toggle').checked = isDev;
+
+  // Set toggle state for both views (login and authenticated)
+  const toggleAuth = document.getElementById('environment-toggle');
+  const toggleLogin = document.getElementById('environment-toggle-login');
+  if (toggleAuth) toggleAuth.checked = isDev;
+  if (toggleLogin) toggleLogin.checked = isDev;
+
   CONFIG.isDevelopment = isDev;
 
-  // Load custom ports if in development mode
+  // Load custom ports if in development mode for both views
   if (result.customPorts) {
     CONFIG.setDevelopmentPorts(result.customPorts.backend, result.customPorts.frontend);
-    document.getElementById('backend-port').value = result.customPorts.backend;
-    document.getElementById('frontend-port').value = result.customPorts.frontend;
+
+    // Authenticated view
+    const backendPort = document.getElementById('backend-port');
+    const frontendPort = document.getElementById('frontend-port');
+    if (backendPort) backendPort.value = result.customPorts.backend;
+    if (frontendPort) frontendPort.value = result.customPorts.frontend;
+
+    // Login view
+    const backendPortLogin = document.getElementById('backend-port-login');
+    const frontendPortLogin = document.getElementById('frontend-port-login');
+    if (backendPortLogin) backendPortLogin.value = result.customPorts.backend;
+    if (frontendPortLogin) frontendPortLogin.value = result.customPorts.frontend;
   } else {
-    document.getElementById('backend-port').value = CONFIG.defaultPorts.backend;
-    document.getElementById('frontend-port').value = CONFIG.defaultPorts.frontend;
+    // Set defaults for both views
+    const backendPort = document.getElementById('backend-port');
+    const frontendPort = document.getElementById('frontend-port');
+    if (backendPort) backendPort.value = CONFIG.defaultPorts.backend;
+    if (frontendPort) frontendPort.value = CONFIG.defaultPorts.frontend;
+
+    const backendPortLogin = document.getElementById('backend-port-login');
+    const frontendPortLogin = document.getElementById('frontend-port-login');
+    if (backendPortLogin) backendPortLogin.value = CONFIG.defaultPorts.backend;
+    if (frontendPortLogin) frontendPortLogin.value = CONFIG.defaultPorts.frontend;
   }
 
-  // Show/hide dev ports config based on environment
+  // Show/hide dev ports config based on environment for both views
   toggleDevPortsConfig(isDev);
 
   showLoading(false);
@@ -120,7 +144,7 @@ function setupEventListeners() {
     chrome.tabs.create({ url: CONFIG.getFrontendUrl() });
   });
 
-  // Environment toggle
+  // Environment toggle (authenticated view)
   document.getElementById('environment-toggle')?.addEventListener('change', async (e) => {
     const isDev = e.target.checked;
     CONFIG.isDevelopment = isDev;
@@ -129,15 +153,34 @@ function setupEventListeners() {
     console.log('Environment changed to:', isDev ? 'Development' : 'Production');
   });
 
-  // Save ports button
+  // Environment toggle (login view)
+  document.getElementById('environment-toggle-login')?.addEventListener('change', async (e) => {
+    const isDev = e.target.checked;
+    CONFIG.isDevelopment = isDev;
+    await chrome.storage.local.set({ isDevelopment: isDev });
+    toggleDevPortsConfig(isDev);
+    console.log('Environment changed to:', isDev ? 'Development' : 'Production');
+  });
+
+  // Save ports button (authenticated view)
   document.getElementById('save-ports-button')?.addEventListener('click', handleSavePorts);
+
+  // Save ports button (login view)
+  document.getElementById('save-ports-button-login')?.addEventListener('click', handleSavePortsLogin);
 }
 
 // Toggle dev ports configuration visibility
 function toggleDevPortsConfig(show) {
+  // Authenticated view
   const devPortsConfig = document.getElementById('dev-ports-config');
   if (devPortsConfig) {
     devPortsConfig.style.display = show ? 'block' : 'none';
+  }
+
+  // Login view
+  const devPortsConfigLogin = document.getElementById('dev-ports-config-login');
+  if (devPortsConfigLogin) {
+    devPortsConfigLogin.style.display = show ? 'block' : 'none';
   }
 }
 
@@ -145,6 +188,28 @@ function toggleDevPortsConfig(show) {
 async function handleSavePorts() {
   const backendPort = parseInt(document.getElementById('backend-port').value) || CONFIG.defaultPorts.backend;
   const frontendPort = parseInt(document.getElementById('frontend-port').value) || CONFIG.defaultPorts.frontend;
+
+  // Validate ports
+  if (backendPort < 1000 || backendPort > 65535 || frontendPort < 1000 || frontendPort > 65535) {
+    showNotification('Puertos inválidos. Deben estar entre 1000 y 65535', 'error');
+    return;
+  }
+
+  // Save to storage
+  const customPorts = { backend: backendPort, frontend: frontendPort };
+  await chrome.storage.local.set({ customPorts });
+
+  // Update CONFIG
+  CONFIG.setDevelopmentPorts(backendPort, frontendPort);
+
+  showNotification(`Puertos actualizados: Backend ${backendPort}, Frontend ${frontendPort}`, 'success');
+  console.log('Custom ports saved:', customPorts);
+}
+
+// Handle save custom ports (login view)
+async function handleSavePortsLogin() {
+  const backendPort = parseInt(document.getElementById('backend-port-login').value) || CONFIG.defaultPorts.backend;
+  const frontendPort = parseInt(document.getElementById('frontend-port-login').value) || CONFIG.defaultPorts.frontend;
 
   // Validate ports
   if (backendPort < 1000 || backendPort > 65535 || frontendPort < 1000 || frontendPort > 65535) {

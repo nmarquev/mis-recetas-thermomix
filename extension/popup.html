@@ -55,6 +55,32 @@
           </svg>
           <span>Abrir TasteBox</span>
         </button>
+
+        <!-- Settings for Not Authenticated -->
+        <div class="settings" style="margin-top: 16px;">
+          <div class="setting-item">
+            <label for="environment-toggle-login">Modo Desarrollo</label>
+            <label class="toggle">
+              <input type="checkbox" id="environment-toggle-login">
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <!-- Dev Mode Ports Config -->
+          <div id="dev-ports-config-login" style="display: none;" class="dev-ports">
+            <div class="port-input-group">
+              <label for="backend-port-login">Puerto Backend</label>
+              <input type="number" id="backend-port-login" placeholder="3005" min="1000" max="65535">
+            </div>
+            <div class="port-input-group">
+              <label for="frontend-port-login">Puerto Frontend</label>
+              <input type="number" id="frontend-port-login" placeholder="8080" min="1000" max="65535">
+            </div>
+            <button class="btn btn-sm btn-secondary" id="save-ports-button-login">
+              Guardar Puertos
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
