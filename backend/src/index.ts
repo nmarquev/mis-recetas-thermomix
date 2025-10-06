@@ -43,9 +43,15 @@ app.use(cors({
         callback(new Error('Not allowed by CORS'));
       }
     } else {
-      // En desarrollo, siempre devolver el origen específico (NUNCA '*' con credentials)
-      // Si no hay origin header (ej: peticiones de servidor), devolver un origen por defecto
-      callback(null, origin || 'http://localhost:8080');
+      // En desarrollo, permitir:
+      // - Orígenes web normales (localhost:8080, etc.)
+      // - Chrome extensions (chrome-extension://...)
+      // - Requests sin origin header (ej: extensiones, Postman, etc.)
+      if (!origin || origin.startsWith('chrome-extension://') || origin.startsWith('http://localhost') || origin.startsWith('https://localhost')) {
+        callback(null, origin || 'http://localhost:8080');
+      } else {
+        callback(null, origin); // En dev, permitir cualquier origen
+      }
     }
   },
   credentials: true,
