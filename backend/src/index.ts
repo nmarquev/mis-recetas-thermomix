@@ -1,14 +1,13 @@
+// IMPORTANT: Load environment variables FIRST
+import './config/env';
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
 import path from 'path';
 import https from 'https';
 import fs from 'fs';
 import cookieParser from 'cookie-parser';
-
-// Load environment variables
-dotenv.config();
 
 // Import routes
 import authRoutes from './routes/auth';

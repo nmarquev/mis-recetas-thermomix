@@ -34,14 +34,20 @@ const llmResponseSchema = z.object({
   ingredients: z.array(z.object({
     name: z.string().min(1).catch('Ingrediente'), // nombre de ingrediente por defecto
     amount: z.string().min(0).transform(val => val?.trim() === '' ? 'al gusto' : (val || 'al gusto')),
-    unit: z.string().optional().nullable().transform(val => val || undefined)
-  }).catch({name: 'Ingrediente', amount: 'al gusto', unit: undefined})) // capturar errores de ingredientes individuales
+    unit: z.string().optional().nullable().transform(val => val || undefined),
+    section: z.string().optional().nullable().transform(val => val || undefined) // Sección para recetas multiparte
+  }).catch({name: 'Ingrediente', amount: 'al gusto', unit: undefined, section: undefined})) // capturar errores de ingredientes individuales
     .transform(ingredients => ingredients.filter(ing => ing.name && ing.name.trim() !== '' && ing.name !== 'Ingrediente')) // filtrar nombres vacíos y fallback
-    .transform(ingredients => ingredients.length > 0 ? ingredients : [{name: 'Ingredientes no especificados', amount: 'al gusto', unit: undefined}]), // asegurar al menos 1 ingrediente
+    .transform(ingredients => ingredients.length > 0 ? ingredients : [{name: 'Ingredientes no especificados', amount: 'al gusto', unit: undefined, section: undefined}]), // asegurar al menos 1 ingrediente
   instructions: z.array(z.object({
     step: z.number().min(1).catch(1), // números de paso inválidos se convierten en 1
-    description: z.string().min(1).transform(val => cleanHtmlFromText(val)).catch('Paso de preparación') // Limpiar HTML y descripción fallback
-  })).min(1).catch([{step: 1, description: 'Preparar según la receta original'}]), // mínimo 1 instrucción
+    description: z.string().min(1).transform(val => cleanHtmlFromText(val)).catch('Paso de preparación'), // Limpiar HTML y descripción fallback
+    function: z.string().optional().nullable().transform(val => val || undefined), // Función Thermomix
+    time: z.string().optional().nullable().transform(val => val || undefined), // Tiempo Thermomix
+    temperature: z.string().optional().nullable().transform(val => val || undefined), // Temperatura Thermomix
+    speed: z.string().optional().nullable().transform(val => val || undefined), // Velocidad Thermomix
+    section: z.string().optional().nullable().transform(val => val || undefined) // Sección para recetas multiparte
+  })).min(1).catch([{step: 1, description: 'Preparar según la receta original', function: undefined, time: undefined, temperature: undefined, speed: undefined, section: undefined}]), // mínimo 1 instrucción
   prepTime: z.number().min(1).nullable().catch(30).transform(val => val ?? 30), // siempre retornar número válido
   cookTime: z.number().nullable().optional().catch(null).transform(val => val === null ? undefined : val),
   servings: z.number().min(1).nullable().catch(4).transform(val => val ?? 4), // siempre retornar número válido
@@ -308,8 +314,6 @@ export class LLMServiceImproved {
         console.log('🖼️ og:image de Instagram encontrada (likely has play button overlay):', selectedImageUrl);
       }
 
-      // We'll add the selected image URL after checking all sources
-
       // Look for structured data with recipe information and alternative images
       const jsonLdMatches = html.match(/<script type="application\/ld\+json">([^<]+)<\/script>/g);
       let jsonImageFound = false;
@@ -397,7 +401,7 @@ export class LLMServiceImproved {
       const videoPrompt = this.buildVideoExtractionPrompt(content);
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -694,7 +698,7 @@ ${truncatedContent}`;
     console.log('\n=== 🤖 LLM REQUEST START ===');
     console.log('📍 Source URL:', sourceUrl);
     console.log('📝 HTML Content Length:', html.length, 'characters');
-    console.log('🎯 Model:', 'gpt-5-mini');
+    console.log('🎯 Model:', 'gpt-4o-mini');
     console.log('🌡️ Temperature:', 0.1);
     console.log('📄 Max Tokens:', 4000);
     console.log('\n📋 SYSTEM PROMPT:');
@@ -725,7 +729,7 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
     let responseContent: string | undefined;
     try {
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -809,6 +813,21 @@ Solo responde {"error": true} si definitivamente no hay ninguna receta en la pá
       console.log('  - Tiempo de preparación:', validatedData.prepTime, 'minutos');
       console.log('  - Porciones:', validatedData.servings);
       console.log('  - Dificultad:', validatedData.difficulty);
+
+      // Log sections
+      const ingredientsWithSection = validatedData.ingredients.filter(ing => ing.section);
+      const instructionsWithSection = validatedData.instructions.filter(inst => inst.section);
+      console.log('📦 SECCIONES DETECTADAS:');
+      console.log('  - Ingredientes con sección:', ingredientsWithSection.length, '/', validatedData.ingredients.length);
+      console.log('  - Instrucciones con sección:', instructionsWithSection.length, '/', validatedData.instructions.length);
+      if (ingredientsWithSection.length > 0) {
+        const ingredientSections = [...new Set(ingredientsWithSection.map(ing => ing.section))];
+        console.log('  - Secciones de ingredientes:', ingredientSections);
+      }
+      if (instructionsWithSection.length > 0) {
+        const instructionSections = [...new Set(instructionsWithSection.map(inst => inst.section))];
+        console.log('  - Secciones de instrucciones:', instructionSections);
+      }
 
       // Clean title to remove emojis
       const cleanTitle = this.cleanRecipeTitle(validatedData.title);
@@ -953,8 +972,20 @@ Esta es una receta de Cookidoo.international (Thermomix). EXTRACCIÓN MEJORADA:
 📦 RECETAS MULTIPARTE (si aplica):
 Si la receta tiene múltiples componentes (ej: plato + salsa + guarnición):
 - DETECTA secciones por títulos: "Plato principal", "Salsa", "Acompañamiento", "Para la base", etc.
-- ASIGNA cada ingrediente/instrucción a su sección usando campo "section"
+- ASIGNA cada ingrediente a su sección usando campo "section"
 - Si NO hay secciones, usa "section": null
+
+⚠️ INSTRUCCIONES - MUY IMPORTANTE:
+1. **EXTRAE TODOS LOS PASOS NUMERADOS** - Si hay 11 pasos numerados, debes devolver exactamente 11 pasos
+2. **PARSEA CONFIGURACIONES THERMOMIX DEL TEXTO**:
+   - Si ves "15 seg/vel 10" → time: "15 seg", speed: "vel 10"
+   - Si ves "5 min/100°" → time: "5 min", temperature: "100°"
+   - Si ves "2 min/80°/vel 3" → time: "2 min", temperature: "80°", speed: "vel 3"
+   - Si NO encuentras configuraciones, deja los campos como null
+   - NO es obligatorio que todos los pasos tengan configuraciones Thermomix
+3. **LIMPIA EL TEXTO**:
+   - Elimina configuraciones Thermomix de la descripción después de parsearlas
+   - Ejemplo: "Agregar harina. 15 seg/vel 10" → description: "Agregar harina", time: "15 seg", speed: "vel 10"
 
 Extrae en formato JSON exacto:
 {
@@ -968,28 +999,29 @@ Extrae en formato JSON exacto:
     }
   ],
   "ingredients": [
-    {"name": "nombre_exacto_del_ingrediente", "amount": "cantidad_exacta_como_aparece", "unit": "unidad_si_está_separada", "section": "Plato principal"},
-    {"name": "ingrediente_sin_cantidad_específica", "amount": "", "unit": "", "section": null}
+    {"name": "nombre", "amount": "cantidad", "unit": "unidad", "section": "Componente 1"},
+    {"name": "nombre", "amount": "cantidad", "unit": "", "section": null}
   ],
   "instructions": [
     {
       "step": 1,
-      "description": "instrucción_completa_exacta_sin_tags_html",
-      "function": "Amasar",
-      "time": "2 min",
-      "temperature": "90°C",
-      "speed": "3",
-      "section": "Plato principal"
+      "description": "Colocar ingredientes en el vaso (sin configuraciones Thermomix en el texto)",
+      "function": "Picar",
+      "time": "15 seg",
+      "temperature": null,
+      "speed": "vel 10",
+      "section": "Componente 1"
     },
     {
       "step": 2,
-      "description": "INCLUYE_TODOS_LOS_PASOS_SIN_SALTAR_NINGUNO",
+      "description": "Otro paso (texto limpio sin configuraciones)",
       "function": null,
-      "time": null,
-      "temperature": null,
+      "time": "2 min",
+      "temperature": "100°",
       "speed": null,
       "section": null
     }
+    // ⚠️ IMPORTANTE: Si el HTML tiene 11 pasos, JSON debe tener 11 pasos
   ],
   "prepTime": tiempo_en_minutos_exacto,
   "cookTime": tiempo_cocción_en_minutos_si_existe,
@@ -1005,6 +1037,12 @@ Extrae en formato JSON exacto:
 - No modifiques cantidades
 - No agregues información que no está
 - No conviertas unidades de medida
+- **NO OMITAS PASOS DE INSTRUCCIONES** - Cuenta cuántos pasos numerados hay en el HTML y devuelve exactamente ese número
+
+✅ ANTES DE RESPONDER:
+1. Cuenta los pasos numerados en la sección de instrucciones del HTML
+2. Verifica que tu JSON tenga exactamente ese número de pasos
+3. Busca patrones como "X min/Y°/vel Z" en cada paso y extrae las configuraciones
 
 Contenido HTML:
 ${truncatedHtml}`;
@@ -1125,7 +1163,7 @@ Responde SOLO con un JSON válido con este formato exacto:
       console.log(`🖼️ Enviando ${pages.length} page images to GPT-4o-mini for multimodal analysis`);
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages,
         max_completion_tokens: 8000,
         response_format: { type: 'json_object' }
@@ -1236,7 +1274,7 @@ ${documentText}
 `;
 
       const response = await this.openai.chat.completions.create({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
         max_completion_tokens: 8000,
         response_format: { type: 'json_object' }
@@ -1304,7 +1342,7 @@ ${documentText}
       console.log('📄 Max Tokens: 4000');
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -1429,7 +1467,7 @@ Si el texto no contiene una receta válida, responde: {"error": true}`
       console.log('📏 Prompt longitud:', prompt.length, 'characters');
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -1582,7 +1620,7 @@ Responde SOLO con JSON, valores POR PORCIÓN:
 }`;
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',
@@ -1760,7 +1798,7 @@ Responde ÚNICAMENTE con JSON válido en este formato:
 NO agregues explicaciones antes o después del JSON. Responde solo con el JSON válido.`;
 
       const completion = await this.openai.chat.completions.create({
-        model: 'gpt-5-mini',
+        model: 'gpt-4o-mini',
         messages: [
           {
             role: 'system',

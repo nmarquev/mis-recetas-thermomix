@@ -28,10 +28,23 @@ async function initializePopup() {
   }
 
   // Load environment setting
-  const result = await chrome.storage.local.get(['isDevelopment']);
+  const result = await chrome.storage.local.get(['isDevelopment', 'customPorts']);
   const isDev = result.isDevelopment !== undefined ? result.isDevelopment : CONFIG.isDevelopment;
   document.getElementById('environment-toggle').checked = isDev;
   CONFIG.isDevelopment = isDev;
+
+  // Load custom ports if in development mode
+  if (result.customPorts) {
+    CONFIG.setDevelopmentPorts(result.customPorts.backend, result.customPorts.frontend);
+    document.getElementById('backend-port').value = result.customPorts.backend;
+    document.getElementById('frontend-port').value = result.customPorts.frontend;
+  } else {
+    document.getElementById('backend-port').value = CONFIG.defaultPorts.backend;
+    document.getElementById('frontend-port').value = CONFIG.defaultPorts.frontend;
+  }
+
+  // Show/hide dev ports config based on environment
+  toggleDevPortsConfig(isDev);
 
   showLoading(false);
 }
@@ -109,10 +122,45 @@ function setupEventListeners() {
 
   // Environment toggle
   document.getElementById('environment-toggle')?.addEventListener('change', async (e) => {
-    CONFIG.isDevelopment = e.target.checked;
-    await chrome.storage.local.set({ isDevelopment: e.target.checked });
-    console.log('Environment changed to:', CONFIG.isDevelopment ? 'Development' : 'Production');
+    const isDev = e.target.checked;
+    CONFIG.isDevelopment = isDev;
+    await chrome.storage.local.set({ isDevelopment: isDev });
+    toggleDevPortsConfig(isDev);
+    console.log('Environment changed to:', isDev ? 'Development' : 'Production');
   });
+
+  // Save ports button
+  document.getElementById('save-ports-button')?.addEventListener('click', handleSavePorts);
+}
+
+// Toggle dev ports configuration visibility
+function toggleDevPortsConfig(show) {
+  const devPortsConfig = document.getElementById('dev-ports-config');
+  if (devPortsConfig) {
+    devPortsConfig.style.display = show ? 'block' : 'none';
+  }
+}
+
+// Handle save custom ports
+async function handleSavePorts() {
+  const backendPort = parseInt(document.getElementById('backend-port').value) || CONFIG.defaultPorts.backend;
+  const frontendPort = parseInt(document.getElementById('frontend-port').value) || CONFIG.defaultPorts.frontend;
+
+  // Validate ports
+  if (backendPort < 1000 || backendPort > 65535 || frontendPort < 1000 || frontendPort > 65535) {
+    showNotification('Puertos inválidos. Deben estar entre 1000 y 65535', 'error');
+    return;
+  }
+
+  // Save to storage
+  const customPorts = { backend: backendPort, frontend: frontendPort };
+  await chrome.storage.local.set({ customPorts });
+
+  // Update CONFIG
+  CONFIG.setDevelopmentPorts(backendPort, frontendPort);
+
+  showNotification(`Puertos actualizados: Backend ${backendPort}, Frontend ${frontendPort}`, 'success');
+  console.log('Custom ports saved:', customPorts);
 }
 
 // Handle login

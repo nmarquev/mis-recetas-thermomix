@@ -1,17 +1,33 @@
 // Configuration for TasteBox API
 const CONFIG = {
   // Development mode - set to false for production
-  isDevelopment: true,
+  isDevelopment: false,
+
+  // Default ports for development
+  defaultPorts: {
+    backend: 3005,
+    frontend: 8080
+  },
+
+  // Custom ports (loaded from storage)
+  customPorts: null,
 
   // API URLs
   development: {
-    apiUrl: 'http://localhost:3005',
+    apiUrl: 'https://localhost:3005',
     frontendUrl: 'http://localhost:8080'
   },
 
   production: {
-    apiUrl: 'https://api.tastebox.com',
-    frontendUrl: 'https://app.tastebox.com'
+    apiUrl: 'https://tastebox.beweb.com.ar:5000',
+    frontendUrl: 'https://tastebox.beweb.com.ar'
+  },
+
+  // Set custom development ports
+  setDevelopmentPorts(backendPort, frontendPort) {
+    this.customPorts = { backend: backendPort, frontend: frontendPort };
+    this.development.apiUrl = `https://localhost:${backendPort}`;
+    this.development.frontendUrl = `http://localhost:${frontendPort}`;
   },
 
   // Get current API URL based on environment

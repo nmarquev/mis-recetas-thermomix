@@ -43,7 +43,11 @@ const updateProfileSchema = z.object({
 // Registro
 router.post('/register', async (req, res) => {
   try {
-    const { email, name, alias, password } = registerSchema.parse(req.body);
+    const result = registerSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Error de validación', details: result.error.errors });
+    }
+    const { email, name, alias, password } = result.data;
 
     // Verificar si el usuario ya existe
     const existingUser = await prisma.user.findUnique({
@@ -100,7 +104,11 @@ router.post('/register', async (req, res) => {
 // Inicio de sesión
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = loginSchema.parse(req.body);
+    const result = loginSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Error de validación', details: result.error.errors });
+    }
+    const { email, password } = result.data;
 
     // Buscar usuario
     const user = await prisma.user.findUnique({

@@ -71,6 +71,7 @@ export const NutritionModal = ({ recipe, isOpen, onClose, onRecipeUpdate }: Nutr
                 name: ing.name,
                 amount: ing.amount || "",  // Ensure amount is never null/undefined
                 unit: ing.unit || "",
+                section: ing.section || undefined, // Include section for multi-part recipes
                 order: ing.order
               })),
               instructions: updatedRecipe.instructions.map(inst => ({
@@ -78,7 +79,8 @@ export const NutritionModal = ({ recipe, isOpen, onClose, onRecipeUpdate }: Nutr
                 description: inst.description,
                 time: inst.thermomixSettings?.time || "",
                 temperature: inst.thermomixSettings?.temperature || "",
-                speed: inst.thermomixSettings?.speed || ""
+                speed: inst.thermomixSettings?.speed || "",
+                section: inst.section || undefined // Include section for multi-part recipes
               })),
               tags: updatedRecipe.tags
             };

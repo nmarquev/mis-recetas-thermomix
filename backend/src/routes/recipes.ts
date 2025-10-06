@@ -36,6 +36,7 @@ const createRecipeSchema = z.object({
     name: z.string().min(1),
     amount: z.string(),  // Allow empty amounts for "al gusto" ingredients
     unit: z.string().nullable().optional().transform(val => val ?? ''),
+    section: z.string().nullable().optional().transform(val => val ?? undefined), // Section for multi-part recipes
     order: z.number()
   })),
   instructions: z.array(z.object({
@@ -43,7 +44,8 @@ const createRecipeSchema = z.object({
     description: z.string().min(1),
     time: z.string().nullable().optional().transform(val => val ?? ''),
     temperature: z.string().nullable().optional().transform(val => val ?? ''),
-    speed: z.string().nullable().optional().transform(val => val ?? '')
+    speed: z.string().nullable().optional().transform(val => val ?? ''),
+    section: z.string().nullable().optional().transform(val => val ?? undefined) // Section for multi-part recipes
   })),
   tags: z.array(z.string()),
   featured: z.boolean().optional(),
@@ -80,6 +82,7 @@ const updateRecipeSchema = z.object({
     name: z.string().min(1),
     amount: z.string(),  // Allow empty amounts for "al gusto" ingredients
     unit: z.string().nullable().optional().transform(val => val ?? ''),
+    section: z.string().nullable().optional().transform(val => val ?? undefined), // Section for multi-part recipes
     order: z.number()
   })),
   instructions: z.array(z.object({
@@ -87,7 +90,8 @@ const updateRecipeSchema = z.object({
     description: z.string().min(1),
     time: z.string().nullable().optional().transform(val => val ?? ''),
     temperature: z.string().nullable().optional().transform(val => val ?? ''),
-    speed: z.string().nullable().optional().transform(val => val ?? '')
+    speed: z.string().nullable().optional().transform(val => val ?? ''),
+    section: z.string().nullable().optional().transform(val => val ?? undefined) // Section for multi-part recipes
   })),
   tags: z.array(z.union([
     z.string(),
@@ -128,14 +132,22 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
     const transformedRecipes = recipes.map(recipe => ({
       ...recipe,
       tags: recipe.tags.map(rt => rt.tag.name),
-      instructions: recipe.instructions.map(instruction => ({
-        ...instruction,
-        thermomixSettings: {
-          time: instruction.time,
-          temperature: instruction.temperature,
-          speed: instruction.speed
-        }
-      }))
+      ingredients: recipe.ingredients.map(ing => {
+        const { section, ...rest } = ing;
+        return section ? { ...rest, section } : rest;
+      }),
+      instructions: recipe.instructions.map(instruction => {
+        const { section, ...rest } = instruction;
+        const base = section ? { ...rest, section } : rest;
+        return {
+          ...base,
+          thermomixSettings: {
+            time: instruction.time,
+            temperature: instruction.temperature,
+            speed: instruction.speed
+          }
+        };
+      })
     }));
 
     res.json(transformedRecipes);
@@ -179,14 +191,22 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
     const transformedRecipe = {
       ...recipe,
       tags: recipe.tags.map(rt => rt.tag.name),
-      instructions: recipe.instructions.map(instruction => ({
-        ...instruction,
-        thermomixSettings: {
-          time: instruction.time,
-          temperature: instruction.temperature,
-          speed: instruction.speed
-        }
-      }))
+      ingredients: recipe.ingredients.map(ing => {
+        const { section, ...rest } = ing;
+        return section ? { ...rest, section } : rest;
+      }),
+      instructions: recipe.instructions.map(instruction => {
+        const { section, ...rest } = instruction;
+        const base = section ? { ...rest, section } : rest;
+        return {
+          ...base,
+          thermomixSettings: {
+            time: instruction.time,
+            temperature: instruction.temperature,
+            speed: instruction.speed
+          }
+        };
+      })
     };
 
     res.json(transformedRecipe);
@@ -242,6 +262,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
             name: ing.name,
             amount: ing.amount,
             unit: ing.unit,
+            section: (ing as any).section || undefined,
             order: (ing as any).order || index + 1
           }))
         },
@@ -251,7 +272,8 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
             description: inst.description,
             time: inst.time,
             temperature: inst.temperature,
-            speed: inst.speed
+            speed: inst.speed,
+            section: (inst as any).section || undefined
           }))
         },
         tags: {
@@ -370,6 +392,7 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
             name: ing.name,
             amount: ing.amount,
             unit: ing.unit,
+            section: (ing as any).section || undefined, // Include section for multi-part recipes
             order: (ing as any).order || index + 1
           }))
         },
@@ -380,7 +403,8 @@ router.put('/:id', authenticateToken, async (req: AuthRequest, res) => {
             description: inst.description,
             time: inst.time,
             temperature: inst.temperature,
-            speed: inst.speed
+            speed: inst.speed,
+            section: (inst as any).section || undefined // Include section for multi-part recipes
           }))
         },
         tags: {

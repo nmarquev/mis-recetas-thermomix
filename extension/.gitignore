@@ -1,12 +1,18 @@
-# Ignore packaged extension
-*.zip
-*.crx
-*.pem
-
-# Ignore OS files
+# Development files
 .DS_Store
 Thumbs.db
-
-# Ignore temp files
-*.tmp
 *.log
+*.tmp
+.env
+.env.local
+
+# Node modules (if any)
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+
+# Build artifacts
+*.crx
+*.pem

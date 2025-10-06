@@ -455,6 +455,49 @@ const Index = () => {
       if (!scriptText?.trim()) {
         setGeneratingScript(recipe.id);
 
+        // Group ingredients and instructions by section
+        const ingredientsBySection = new Map<string | null, typeof recipe.ingredients>();
+        recipe.ingredients.forEach(ing => {
+          const section = ing.section || null;
+          if (!ingredientsBySection.has(section)) {
+            ingredientsBySection.set(section, []);
+          }
+          ingredientsBySection.get(section)!.push(ing);
+        });
+
+        const instructionsBySection = new Map<string | null, typeof recipe.instructions>();
+        recipe.instructions.forEach(inst => {
+          const section = inst.section || null;
+          if (!instructionsBySection.has(section)) {
+            instructionsBySection.set(section, []);
+          }
+          instructionsBySection.get(section)!.push(inst);
+        });
+
+        // Format ingredients with sections
+        let ingredientsText = '';
+        Array.from(ingredientsBySection.entries()).forEach(([section, ingredients]) => {
+          if (section) {
+            ingredientsText += `\n${section}:\n`;
+          }
+          ingredients.forEach(ing => {
+            ingredientsText += `- ${ing.amount} ${ing.unit || ''} ${ing.name}\n`;
+          });
+        });
+
+        // Format instructions with sections
+        let instructionsText = '';
+        let stepCounter = 1;
+        Array.from(instructionsBySection.entries()).forEach(([section, instructions]) => {
+          if (section) {
+            instructionsText += `\n${section}:\n`;
+          }
+          instructions.forEach(inst => {
+            instructionsText += `${stepCounter}. ${inst.description}\n`;
+            stepCounter++;
+          });
+        });
+
         const prompt = `Genera un script para explicar esta receta de cocina. El script debe ser natural, entusiasta y fácil de seguir. NO te presentes ni menciones tu nombre, simplemente explica la receta directamente. Los datos de la receta son:
 
 Título: ${recipe.title}
@@ -465,10 +508,12 @@ Porciones: ${recipe.servings}
 Dificultad: ${recipe.difficulty}
 
 Ingredientes:
-${recipe.ingredients.map(ing => `- ${ing.amount} ${ing.unit || ''} ${ing.name}`).join('\n')}
+${ingredientsText}
 
 Instrucciones:
-${recipe.instructions.map((inst, idx) => `${idx + 1}. ${inst.description}`).join('\n')}
+${instructionsText}
+
+IMPORTANTE: Si hay secciones en los ingredientes o instrucciones (por ejemplo "Para la masa", "Para el relleno"), menciónalas claramente en el script para que el oyente entienda que esta receta tiene múltiples partes. Por ejemplo: "Para la masa necesitaremos..." o "Ahora vamos con el relleno...".
 
 Genera un script natural y conversacional explicando la receta paso a paso. Comienza directamente con la receta sin presentarte. Que sea fluido y agradable de escuchar.`;
 
@@ -495,6 +540,7 @@ Genera un script natural y conversacional explicando la receta paso a paso. Comi
                 name: ing.name,
                 amount: ing.amount || "",
                 unit: ing.unit || "",
+                section: ing.section || undefined,
                 order: ing.order
               })),
               instructions: updatedRecipe.instructions.map(inst => ({
@@ -502,7 +548,8 @@ Genera un script natural y conversacional explicando la receta paso a paso. Comi
                 description: inst.description,
                 time: inst.thermomixSettings?.time || "",
                 temperature: inst.thermomixSettings?.temperature || "",
-                speed: inst.thermomixSettings?.speed || ""
+                speed: inst.thermomixSettings?.speed || "",
+                section: inst.section || undefined
               })),
               tags: updatedRecipe.tags.map(tag =>
                 typeof tag === 'string' ? tag : tag.tag || tag.name || String(tag)

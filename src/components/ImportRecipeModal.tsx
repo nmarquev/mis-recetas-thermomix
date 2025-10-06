@@ -10,6 +10,7 @@ import { api } from '@/services/api';
 import { ImportRecipeResponse, Recipe } from '@/types/recipe';
 import { Loader2, Globe, Clock, Users, ChefHat, X, Check } from 'lucide-react';
 import { resolveImageUrl } from '@/utils/api';
+import { EditRecipeModal } from '@/components/EditRecipeModal';
 
 interface ImportRecipeModalProps {
   isOpen: boolean;
@@ -350,58 +351,139 @@ export const ImportRecipeModal = ({ isOpen, onClose, onImportSuccess, onViewReci
               {/* Ingredients */}
               <div>
                 <h4 className="font-medium mb-2">Ingredientes ({importedRecipe.ingredients.length})</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {importedRecipe.ingredients.map((ingredient, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm">
-                      <span className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
-                      <span className="font-medium">{ingredient.amount} {ingredient.unit}</span>
-                      <span>{ingredient.name}</span>
-                    </div>
-                  ))}
+                <div className="space-y-4">
+                  {(() => {
+                    // Group ingredients by section
+                    const grouped = new Map<string | null, typeof importedRecipe.ingredients>();
+                    importedRecipe.ingredients.forEach(ing => {
+                      const section = (ing as any).section || null;
+                      if (!grouped.has(section)) {
+                        grouped.set(section, []);
+                      }
+                      grouped.get(section)!.push(ing);
+                    });
+
+                    return Array.from(grouped.entries()).map(([section, ingredients], sectionIndex) => (
+                      <div key={sectionIndex}>
+                        {section && (
+                          <h5 className="font-medium text-primary text-sm mb-2">{section}</h5>
+                        )}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {ingredients.map((ingredient, index) => (
+                            <div key={index} className="flex items-center gap-2 text-sm">
+                              <span className="w-2 h-2 bg-primary rounded-full flex-shrink-0" />
+                              <span className="font-medium">{ingredient.amount} {ingredient.unit}</span>
+                              <span>{ingredient.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
 
               {/* Instructions */}
               <div>
                 <h4 className="font-medium mb-2">Instrucciones ({importedRecipe.instructions.length} pasos)</h4>
-                <div className="space-y-3">
-                  {importedRecipe.instructions.map((instruction) => (
-                    <div key={instruction.step} className="flex gap-3">
-                      <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
-                        {instruction.step}
+                <div className="space-y-4">
+                  {(() => {
+                    // Group instructions by section
+                    const grouped = new Map<string | null, typeof importedRecipe.instructions>();
+
+                    // Debug logging
+                    console.log('📋 ImportRecipeModal - Instructions data:', {
+                      total: importedRecipe.instructions.length,
+                      firstInstruction: importedRecipe.instructions[0],
+                      hasSection: importedRecipe.instructions.some(inst => (inst as any).section)
+                    });
+
+                    importedRecipe.instructions.forEach(inst => {
+                      const section = (inst as any).section || null;
+                      if (!grouped.has(section)) {
+                        grouped.set(section, []);
+                      }
+                      grouped.get(section)!.push(inst);
+                    });
+
+                    console.log('📋 Grouped instructions:', {
+                      sections: Array.from(grouped.keys()),
+                      counts: Array.from(grouped.entries()).map(([s, insts]) => ({ section: s || '(none)', count: insts.length }))
+                    });
+
+                    return Array.from(grouped.entries()).map(([section, instructions], sectionIndex) => (
+                      <div key={sectionIndex}>
+                        {section && (
+                          <h5 className="font-medium text-primary text-sm mb-2">{section}</h5>
+                        )}
+                        <div className="space-y-3">
+                          {instructions.map((instruction) => (
+                            <div key={instruction.step} className="flex gap-3">
+                              <div className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
+                                {instruction.step}
+                              </div>
+                              <p className="text-sm text-muted-foreground flex-1">{instruction.description}</p>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <p className="text-sm text-muted-foreground flex-1">{instruction.description}</p>
-                    </div>
-                  ))}
+                    ));
+                  })()}
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex justify-end gap-2 pt-4 border-t">
+              <div className="flex justify-between pt-4 border-t">
                 <Button variant="outline" onClick={handleClose}>
                   Cancelar
                 </Button>
-                <Button
-                  onClick={handleSaveRecipe}
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4 mr-2" />
-                      Guardar Receta
-                    </>
-                  )}
-                </Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setIsEditing(true)}
+                    disabled={isLoading}
+                  >
+                    Editar antes de guardar
+                  </Button>
+                  <Button
+                    onClick={handleSaveRecipe}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Guardando...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="h-4 w-4 mr-2" />
+                        Guardar Receta
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
           )}
         </div>
       </DialogContent>
+
+      {/* Edit Recipe Modal */}
+      {importedRecipe && (
+        <EditRecipeModal
+          isOpen={isEditing}
+          onClose={() => setIsEditing(false)}
+          recipe={importedRecipe as any}
+          onRecipeUpdated={(updatedRecipe) => {
+            setImportedRecipe(updatedRecipe as any);
+            setIsEditing(false);
+            toast({
+              title: "Receta actualizada",
+              description: "Los cambios se guardarán cuando presiones 'Guardar Receta'",
+            });
+          }}
+        />
+      )}
     </Dialog>
   );
 };

@@ -23,17 +23,27 @@
 
 ---
 
-## 🆕 **ÚLTIMA ACTUALIZACIÓN (Sep 2025)**
+## 🆕 **ÚLTIMA ACTUALIZACIÓN (Octubre 2025)**
 
-### ✅ **Chrome Extension + Mejoras Cookidoo/Thermomix - COMPLETADO**
+### ✅ **Chrome Extension - LISTA PARA PRODUCCIÓN**
 
-**Implementaciones finalizadas:**
+**Estado: Completada y empaquetada para distribución manual**
+
+#### **Configuración de Producción:**
+- ✅ URL producción: `https://tastebox.beweb.com.ar`
+- ✅ Backend API: `https://tastebox.beweb.com.ar:5000`
+- ✅ Extension ZIP: `dist/tastebox-extension.zip` (119KB)
+- ✅ Comando de empaquetado: `npm run package-extension`
+
+#### **Características Implementadas:**
 
 1. **Chrome Extension funcionando completamente**
-   - Reemplaza sistema de bookmarklet (eliminado)
-   - Importación directa desde cualquier sitio web
-   - Modal de instalación con instrucciones completas
-   - Menú de usuario actualizado con opción "Instalar Extensión Chrome"
+   - Manifest V3 para máxima compatibilidad y seguridad
+   - Importación directa desde cualquier sitio web con un clic
+   - Sistema de autenticación integrado con sesión persistente
+   - Modal de instalación con instrucciones paso a paso
+   - Menú de usuario con opción "Instalar Extensión Chrome"
+   - Modo desarrollo con puertos configurables (opcional)
 
 2. **Cookidoo/Thermomix optimizado**
    - ✅ Fix: Ingredientes sin duplicación de unidades ("40 g" ✓, no "40 g g" ✗)
@@ -43,25 +53,33 @@
    - ✅ Fix: Porciones precisas (manejo de rangos como "4-6" → 6)
    - ✅ Fix: Solo 3-4 tags relevantes (elimina "recetas similares")
    - ✅ Fix: Soporte para recetas multiparte (plato + salsa + acompañamiento)
+   - ✅ Fix: Extracción completa de todos los pasos numerados
 
-3. **Migración de base de datos**
+3. **UI/UX Improvements**
+   - ✅ EditRecipeModal con layout optimizado (header/tabs fijos, scroll solo en contenido)
+   - ✅ Botón de edición directa desde RecipeModal
+   - ✅ Sincronización entre modales anidados
+   - ✅ Prevención de layout shift entre tabs
+
+4. **Migración de base de datos**
    - ✅ Nuevo campo `function` en tabla `instructions`
    - ✅ Nuevo campo `section` en tablas `ingredients` e `instructions`
    - ✅ Migration aplicada: `20250930050343_add_thermomix_function_and_sections`
 
-**Archivos modificados:**
-- `backend/prisma/schema.prisma` - Schema actualizado
-- `backend/src/services/llmServiceImproved.ts` - Prompts mejorados + HTML cleanup
-- `backend/src/routes/importHtml.ts` - Guardado de nuevos campos
-- `src/types/recipe.ts` - Interfaces actualizadas
-- `src/utils/recipeUtils.ts` - Detección de función
-- `src/components/ExtensionInstallModal.tsx` - Nuevo componente
-- `src/components/Header.tsx` - Menu actualizado
+**Archivos clave de extensión:**
+- `extension/manifest.json` - Configuración Manifest V3 con permisos producción
+- `extension/js/config.js` - URLs producción configuradas (isDevelopment: false)
+- `extension/js/background.js` - Service worker con API communication
+- `extension/js/content.js` - Content script para extracción HTML
+- `extension/js/popup.js` - UI popup con autenticación
+- `scripts/package-extension.js` - Script de empaquetado automático
+- `src/components/ExtensionInstallModal.tsx` - Modal de instalación con instrucciones
 
-**Próximos pasos sugeridos:**
-- [ ] Actualizar documentación (README + CLAUDE.md) ✅ EN PROGRESO
-- [ ] Commit y push a repo remoto
-- [ ] Plan de deployment a Vercel (pendiente análisis)
+**Distribución:**
+1. Ejecutar `npm run package-extension` para generar ZIP
+2. Subir `dist/tastebox-extension.zip` a `https://tastebox.beweb.com.ar/downloads/`
+3. Usuarios descargan y cargan en Chrome (modo desarrollador)
+4. NO publicada en Chrome Web Store (distribución manual)
 
 ---
 

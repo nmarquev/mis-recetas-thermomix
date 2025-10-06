@@ -155,14 +155,20 @@ export const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite,
                   {isPdfLoading ? 'Generando...' : 'Descargar'}
                 </DropdownMenuItem>
                 {onEdit && (
-                  <DropdownMenuItem onClick={() => onEdit(recipe)}>
+                  <DropdownMenuItem onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(recipe);
+                  }}>
                     <Edit className="h-4 w-4 mr-2" />
                     Editar
                   </DropdownMenuItem>
                 )}
                 {onDelete && (
                   <DropdownMenuItem
-                    onClick={() => onDelete(recipe)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(recipe);
+                    }}
                     className="text-destructive focus:text-destructive"
                   >
                     <Trash2 className="h-4 w-4 mr-2" />

@@ -2,8 +2,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Recipe } from "@/types/recipe";
-import { Clock, Users, ChefHat, Share, Printer, Download, ChevronLeft, ChevronRight, ExternalLink, Play, Pause } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Clock, Users, ChefHat, Share, Printer, Download, ChevronLeft, ChevronRight, ExternalLink, Play, Pause, Edit } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
 import { resolveImageUrl } from "@/utils/api";
 import { getSiteName, isValidUrl } from "@/utils/siteUtils";
 import { isThermomixRecipe, hasThermomixSettings, getThermomixSettingsDisplay } from "@/utils/recipeUtils";
@@ -13,6 +13,7 @@ import { useVoiceSettings } from "@/hooks/useVoiceSettings";
 import { NutritionLabel } from "@/components/NutritionLabel";
 import { useNutritionCalculator } from "@/hooks/useNutritionCalculator";
 import { downloadRecipePdf, printRecipePdf } from "@/utils/pdfUtils";
+import { EditRecipeModal } from "@/components/EditRecipeModal";
 
 interface RecipeModalProps {
   recipe: Recipe | null;
@@ -25,6 +26,7 @@ export const RecipeModal = ({ recipe, isOpen, onClose, onRecipeUpdate }: RecipeM
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [loadingStates, setLoadingStates] = useState({
     print: false,
     download: false
@@ -73,6 +75,75 @@ export const RecipeModal = ({ recipe, isOpen, onClose, onRecipeUpdate }: RecipeM
     }
   }, [isOpen]);
 
+  // Group ingredients by section for multi-part recipes (memoized)
+  const ingredientsBySection = useMemo(() => {
+    if (!localRecipe || !localRecipe.ingredients) {
+      return new Map();
+    }
+
+    const grouped = new Map<string | null, typeof localRecipe.ingredients>();
+    localRecipe.ingredients.forEach(ing => {
+      const section = ing.section || null;
+      if (!grouped.has(section)) {
+        grouped.set(section, []);
+      }
+      grouped.get(section)!.push(ing);
+    });
+
+    // Debug logging
+    console.log('🥕 Ingredientes agrupados:', {
+      totalIngredients: localRecipe.ingredients.length,
+      sections: Array.from(grouped.keys()),
+      groupedData: Array.from(grouped.entries()).map(([section, ings]) => ({
+        section: section || '(sin sección)',
+        count: ings.length
+      }))
+    });
+
+    return grouped;
+  }, [localRecipe]);
+
+  // Group instructions by section for multi-part recipes (memoized)
+  const instructionsBySection = useMemo(() => {
+    if (!localRecipe || !localRecipe.instructions) {
+      return new Map();
+    }
+
+    const grouped = new Map<string | null, typeof localRecipe.instructions>();
+
+    // Debug logging - check raw data first
+    console.log('📝 RecipeModal - Raw instructions data:', {
+      totalInstructions: localRecipe.instructions.length,
+      firstInstruction: localRecipe.instructions[0],
+      allInstructions: localRecipe.instructions.map(inst => ({
+        step: inst.step,
+        section: inst.section,
+        hasSection: !!inst.section
+      }))
+    });
+
+    localRecipe.instructions.forEach(inst => {
+      const section = inst.section || null;
+      if (!grouped.has(section)) {
+        grouped.set(section, []);
+      }
+      grouped.get(section)!.push(inst);
+    });
+
+    // Debug logging
+    console.log('📝 Instrucciones agrupadas:', {
+      totalInstructions: localRecipe.instructions.length,
+      sections: Array.from(grouped.keys()),
+      groupedData: Array.from(grouped.entries()).map(([section, insts]) => ({
+        section: section || '(sin sección)',
+        count: insts.length
+      }))
+    });
+
+    return grouped;
+  }, [localRecipe]);
+
+  // Early return AFTER all hooks
   if (!localRecipe || !localRecipe.ingredients || !localRecipe.instructions) return null;
 
   const getDifficultyColor = (difficulty: string) => {
@@ -106,6 +177,30 @@ export const RecipeModal = ({ recipe, isOpen, onClose, onRecipeUpdate }: RecipeM
     try {
       setIsGeneratingScript(true);
 
+      // Format ingredients with sections
+      let ingredientsText = '';
+      Array.from(ingredientsBySection.entries()).forEach(([section, ingredients]) => {
+        if (section) {
+          ingredientsText += `\n${section}:\n`;
+        }
+        ingredients.forEach(ing => {
+          ingredientsText += `- ${ing.amount} ${ing.unit || ''} ${ing.name}\n`;
+        });
+      });
+
+      // Format instructions with sections
+      let instructionsText = '';
+      let stepCounter = 1;
+      Array.from(instructionsBySection.entries()).forEach(([section, instructions]) => {
+        if (section) {
+          instructionsText += `\n${section}:\n`;
+        }
+        instructions.forEach(inst => {
+          instructionsText += `${stepCounter}. ${inst.description}\n`;
+          stepCounter++;
+        });
+      });
+
       const prompt = `Genera un script para explicar esta receta de cocina en un video. El script debe ser natural, entusiasta y fácil de seguir. NO te presentes ni menciones tu nombre, simplemente explica la receta directamente. Los datos de la receta son:
 
 Título: ${recipe.title}
@@ -116,10 +211,12 @@ Porciones: ${recipe.servings}
 Dificultad: ${recipe.difficulty}
 
 Ingredientes:
-${(recipe.ingredients || []).map(ing => `- ${ing.amount} ${ing.unit || ''} ${ing.name}`).join('\n')}
+${ingredientsText}
 
 Instrucciones:
-${(recipe.instructions || []).map((inst, idx) => `${idx + 1}. ${inst.description}`).join('\n')}
+${instructionsText}
+
+IMPORTANTE: Si hay secciones en los ingredientes o instrucciones (por ejemplo "Para la masa", "Para el relleno"), menciónalas claramente en el script para que el oyente entienda que esta receta tiene múltiples partes. Por ejemplo: "Para la masa necesitaremos..." o "Ahora vamos con el relleno...".
 
 Genera un script natural y conversacional explicando la receta paso a paso. Comienza directamente con la receta sin presentarte. Que sea fluido y agradable de escuchar.`;
 
@@ -391,7 +488,18 @@ Genera un script natural y conversacional explicando la receta paso a paso. Comi
     <Dialog open={isOpen} onOpenChange={handleModalClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-2xl">{localRecipe.title}</DialogTitle>
+          <div className="flex items-center justify-between gap-4">
+            <DialogTitle className="text-2xl">{localRecipe.title}</DialogTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsEditModalOpen(true)}
+              className="flex-shrink-0"
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Editar
+            </Button>
+          </div>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -556,16 +664,27 @@ Genera un script natural y conversacional explicando la receta paso a paso. Comi
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Ingredientes ({localRecipe.ingredients?.length || 0})</h3>
                 {localRecipe.ingredients && localRecipe.ingredients.length > 0 ? (
-                  <ul className="space-y-2 text-muted-foreground">
-                    {localRecipe.ingredients.map((ingredient, index) => (
-                      <li key={index} className="flex gap-2">
-                        <span className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
-                        <span>
-                          <span className="font-medium">{ingredient.amount} {ingredient.unit}</span> {ingredient.name}
-                        </span>
-                      </li>
+                  <div className="space-y-4">
+                    {Array.from(ingredientsBySection.entries()).map(([section, ingredients], sectionIndex) => (
+                      <div key={sectionIndex} className="space-y-2">
+                        {section && (
+                          <h4 className="font-medium text-primary mt-3 first:mt-0">
+                            {section}
+                          </h4>
+                        )}
+                        <ul className="space-y-2 text-muted-foreground">
+                          {ingredients.map((ingredient, index) => (
+                            <li key={index} className="flex gap-2">
+                              <span className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
+                              <span>
+                                <span className="font-medium">{ingredient.amount} {ingredient.unit}</span> {ingredient.name}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 ) : (
                   <p className="text-muted-foreground">No hay ingredientes especificados</p>
                 )}
@@ -575,25 +694,36 @@ Genera un script natural y conversacional explicando la receta paso a paso. Comi
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Preparación ({localRecipe.instructions?.length || 0} pasos)</h3>
                 {localRecipe.instructions && localRecipe.instructions.length > 0 ? (
-                  <ol className="space-y-3 text-muted-foreground">
-                    {localRecipe.instructions.map((instruction, index) => (
-                      <li key={index} className="flex gap-3">
-                        <span className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
-                          {instruction.step || index + 1}
-                        </span>
-                        <div className="flex-1">
-                          <p>{instruction.description}</p>
-                          {hasThermomixSettings(instruction) && (
-                            <div className="flex gap-4 mt-1 text-sm text-primary">
-                              {getThermomixSettingsDisplay(instruction).map((setting, index) => (
-                                <span key={index}>{setting}</span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </li>
+                  <div className="space-y-4">
+                    {Array.from(instructionsBySection.entries()).map(([section, instructions], sectionIndex) => (
+                      <div key={sectionIndex} className="space-y-3">
+                        {section && (
+                          <h4 className="font-medium text-primary mt-3 first:mt-0">
+                            {section}
+                          </h4>
+                        )}
+                        <ol className="space-y-3 text-muted-foreground">
+                          {instructions.map((instruction, index) => (
+                            <li key={index} className="flex gap-3">
+                              <span className="flex-shrink-0 w-6 h-6 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-medium">
+                                {instruction.step || index + 1}
+                              </span>
+                              <div className="flex-1">
+                                <p>{instruction.description}</p>
+                                {hasThermomixSettings(instruction) && (
+                                  <div className="flex gap-4 mt-1 text-sm text-primary">
+                                    {getThermomixSettingsDisplay(instruction).map((setting, index) => (
+                                      <span key={index}>{setting}</span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
                     ))}
-                  </ol>
+                  </div>
                 ) : (
                   <p className="text-muted-foreground">No hay instrucciones especificadas</p>
                 )}
@@ -623,6 +753,29 @@ Genera un script natural y conversacional explicando la receta paso a paso. Comi
           </div>
         </div>
       </DialogContent>
+
+      {/* Edit Recipe Modal */}
+      {localRecipe && (
+        <EditRecipeModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          recipe={localRecipe}
+          onRecipeUpdated={(updatedRecipe) => {
+            setLocalRecipe(updatedRecipe);
+            setIsEditModalOpen(false);
+
+            // Notify parent component
+            if (onRecipeUpdate) {
+              onRecipeUpdate(updatedRecipe);
+            }
+
+            toast({
+              title: "Receta actualizada",
+              description: "Los cambios se han guardado exitosamente",
+            });
+          }}
+        />
+      )}
     </Dialog>
   );
 };
