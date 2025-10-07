@@ -1,7 +1,8 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { randomUUID } from 'crypto';
-import * as pdfPoppler from 'pdf-poppler';
+// Lazy load pdf-poppler solo cuando se necesite (evita crash en Linux sin binarios)
+// import * as pdfPoppler from 'pdf-poppler';
 import pdfParse from 'pdf-parse';
 import {
   PdfProcessedContent,
@@ -51,9 +52,18 @@ export class PdfProcessor {
    * Convert PDF pages to base64 images using pdf-poppler
    */
   private async convertPagesToImages(buffer: Buffer, totalPages: number): Promise<PdfPageData[]> {
+    // TODO: Implementar conversión de PDF a imágenes
+    // Por ahora, retornar error descriptivo hasta que se instalen binarios necesarios
+    console.warn('⚠️ PDF image conversion not available - pdf-poppler binaries not installed');
+    throw new Error('PDF image conversion requires poppler-utils to be installed on the server. Please use text-only PDF import for now.');
+
+    /* COMMENTED OUT UNTIL POPPLER IS INSTALLED
     const pageImages: PdfPageData[] = [];
 
     try {
+      // Lazy load pdf-poppler only when needed
+      const pdfPoppler = await import('pdf-poppler');
+
       // Create temporary file for pdf-poppler
       const tempPdfPath = path.join(this.uploadDir, `temp_${randomUUID()}.pdf`);
       await fs.writeFile(tempPdfPath, buffer);
@@ -123,6 +133,7 @@ export class PdfProcessor {
 
     console.log(`🖼️ Convertido ${pageImages.length} pages to images`);
     return pageImages;
+    END OF COMMENTED CODE */
   }
 
   /**
