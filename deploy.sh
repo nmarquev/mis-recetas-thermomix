@@ -39,6 +39,9 @@ npm run build
 echo -e "${YELLOW}🔄 Paso 5: Reiniciando servicio PM2...${NC}"
 cd ..
 
+# Crear directorio de logs si no existe
+mkdir -p backend/logs
+
 # Verificar si el proceso PM2 existe
 if pm2 describe $APP_NAME > /dev/null 2>&1; then
     echo "Reiniciando proceso PM2 existente..."
@@ -46,13 +49,15 @@ if pm2 describe $APP_NAME > /dev/null 2>&1; then
     pm2 save
 else
     echo "Creando nuevo proceso PM2..."
-    # Crear proceso con configuración básica
+    # Crear proceso con configuración de producción
     pm2 start backend/dist/index.js \
         --name $APP_NAME \
         --time \
-        --max-memory-restart 500M \
+        --max-memory-restart 1G \
+        --node-args="--max-old-space-size=1024" \
         --error backend/logs/error.log \
-        --output backend/logs/output.log
+        --output backend/logs/output.log \
+        --env production
     pm2 save
 fi
 

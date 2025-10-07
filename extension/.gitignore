@@ -5,6 +5,9 @@ Thumbs.db
 *.tmp
 .env
 .env.local
+.ecosystem.config.cjs
+./deploy*
+
 
 # Node modules (if any)
 node_modules/

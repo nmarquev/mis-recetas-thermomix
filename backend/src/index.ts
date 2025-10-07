@@ -36,8 +36,15 @@ app.use(cors({
     // En desarrollo, permitir cualquier origen explícitamente (no usar 'true' con credentials)
     // En producción, lista blanca de dominios permitidos
     if (process.env.NODE_ENV === 'production') {
-      const allowedOrigins = ['https://your-domain.com'];
-      if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      const allowedOrigins = [
+        'https://tastebox.beweb.com.ar',
+        'chrome-extension://*' // Permitir extensión Chrome en producción
+      ];
+
+      // En producción, permitir mismo origen y extensiones Chrome
+      if (!origin || allowedOrigins.some(allowed =>
+        allowed.includes('*') ? origin.startsWith(allowed.replace('*', '')) : origin === allowed
+      )) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
@@ -113,7 +120,7 @@ app.use((error: any, req: express.Request, res: express.Response, next: express.
   });
 });
 
-// 404 handler
+// 404 handler - Frontend lo sirve Nginx en producción
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
