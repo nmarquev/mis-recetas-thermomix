@@ -25,6 +25,9 @@ git fetch origin
 git reset --hard origin/$BRANCH
 git pull origin $BRANCH
 
+# Asegurar permisos de ejecución en scripts
+chmod +x deploy.sh debug-backend.sh 2>/dev/null || true
+
 echo -e "${YELLOW}🔧 Paso 2: Instalando dependencias...${NC}"
 npm install --production=false
 
