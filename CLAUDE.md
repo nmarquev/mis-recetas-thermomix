@@ -1,489 +1,278 @@
-# Claude Code - Recipe Genius
+# CLAUDE.md
 
-## Comandos de desarrollo
-- `npm run dev` - Iniciar servidor de desarrollo
-- `npm run build` - Construir aplicación
-- `npm run lint` - Verificar código
-- `npm run typecheck` - Verificar tipos TypeScript
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Estado del proyecto
-- ✅ Funcionalidad base de recetas completada
-- ✅ **Chrome Extension implementada** para importación directa
-- ✅ Importación desde URLs (Instagram, web) funcionando
-- ✅ Importación DOCX implementada con validación mejorada
-- ✅ Importación PDF implementada con procesamiento multimodal
-- ✅ **Cookidoo/Thermomix optimizado** con función, tiempo, temperatura, velocidad
-- ✅ **Recetas multiparte** con soporte para secciones
-- ✅ Sistema TTS (Text-to-Speech) integrado
-- ✅ Configuración de voz personalizable
-- ✅ Edición de perfiles de usuario
-- ✅ Manejo de imágenes optimizado
-- ✅ Validación Zod robusta para null/undefined
-- ✅ UI/UX mejorada con themed components
+## Development Commands
 
----
-
-## 🆕 **ÚLTIMA ACTUALIZACIÓN (Octubre 2025)**
-
-### ✅ **Chrome Extension - LISTA PARA PRODUCCIÓN**
-
-**Estado: Completada y empaquetada para distribución manual**
-
-#### **Configuración de Producción:**
-- ✅ URL producción: `https://tastebox.beweb.com.ar`
-- ✅ Backend API: `https://tastebox.beweb.com.ar:5000`
-- ✅ Extension ZIP: `dist/tastebox-extension.zip` (119KB)
-- ✅ Comando de empaquetado: `npm run package-extension`
-
-#### **Características Implementadas:**
-
-1. **Chrome Extension funcionando completamente**
-   - Manifest V3 para máxima compatibilidad y seguridad
-   - Importación directa desde cualquier sitio web con un clic
-   - Sistema de autenticación integrado con sesión persistente
-   - Modal de instalación con instrucciones paso a paso
-   - Menú de usuario con opción "Instalar Extensión Chrome"
-   - Modo desarrollo con puertos configurables (opcional)
-
-2. **Cookidoo/Thermomix optimizado**
-   - ✅ Fix: Ingredientes sin duplicación de unidades ("40 g" ✓, no "40 g g" ✗)
-   - ✅ Fix: Instrucciones sin HTML tags (`<nobr>`, `<br>` eliminados)
-   - ✅ Fix: Detección de función Thermomix (Amasar, Batir, Picar, etc.)
-   - ✅ Fix: Extracción correcta de configuraciones (tiempo, temperatura, velocidad)
-   - ✅ Fix: Porciones precisas (manejo de rangos como "4-6" → 6)
-   - ✅ Fix: Solo 3-4 tags relevantes (elimina "recetas similares")
-   - ✅ Fix: Soporte para recetas multiparte (plato + salsa + acompañamiento)
-   - ✅ Fix: Extracción completa de todos los pasos numerados
-
-3. **UI/UX Improvements**
-   - ✅ EditRecipeModal con layout optimizado (header/tabs fijos, scroll solo en contenido)
-   - ✅ Botón de edición directa desde RecipeModal
-   - ✅ Sincronización entre modales anidados
-   - ✅ Prevención de layout shift entre tabs
-
-4. **Migración de base de datos**
-   - ✅ Nuevo campo `function` en tabla `instructions`
-   - ✅ Nuevo campo `section` en tablas `ingredients` e `instructions`
-   - ✅ Migration aplicada: `20250930050343_add_thermomix_function_and_sections`
-
-**Archivos clave de extensión:**
-- `extension/manifest.json` - Configuración Manifest V3 con permisos producción
-- `extension/js/config.js` - URLs producción configuradas (isDevelopment: false)
-- `extension/js/background.js` - Service worker con API communication
-- `extension/js/content.js` - Content script para extracción HTML
-- `extension/js/popup.js` - UI popup con autenticación
-- `scripts/package-extension.js` - Script de empaquetado automático
-- `src/components/ExtensionInstallModal.tsx` - Modal de instalación con instrucciones
-
-**Distribución:**
-1. Ejecutar `npm run package-extension` para generar ZIP
-2. Subir `dist/tastebox-extension.zip` a `https://tastebox.beweb.com.ar/downloads/`
-3. Usuarios descargan y cargan en Chrome (modo desarrollador)
-4. NO publicada en Chrome Web Store (distribución manual)
-
----
-
-## 🎯 **FUNCIONALIDADES IMPLEMENTADAS**
-
-### **1. Chrome Extension para Importación Directa**
-- ✅ Manifest V3 para máxima compatibilidad
-- ✅ Content script para extracción de contenido HTML
-- ✅ Background service worker para comunicación con API
-- ✅ Popup UI con autenticación y estado visual
-- ✅ Soporte para Cookidoo, Instagram, blogs de cocina y más
-- ✅ Extracción automática de recetas completas con un clic
-- ✅ Modal de instrucciones de instalación en la app
-
-**Archivos clave:**
-- `extension/manifest.json` - Configuración Manifest V3
-- `extension/background.js` - Service worker con API communication
-- `extension/content.js` - Content script para extracción
-- `extension/popup.html/js/css` - UI de la extensión
-- `src/components/ExtensionInstallModal.tsx` - Modal de instrucciones
-
-### **2. Sistema de Text-to-Speech (TTS)**
-- ✅ Generación automática de scripts narrativos con LLM
-- ✅ Configuración de voz personalizable (velocidad, tono, volumen, idioma)
-- ✅ Reproducción directa desde tarjetas de recetas
-- ✅ Reproducción completa desde modal de recetas
-- ✅ Soporte para múltiples idiomas (ES-AR, ES-ES, ES-MX, EN-US, EN-GB)
-- ✅ Detección automática de voces del sistema
-- ✅ Almacenamiento de configuración en localStorage
-
-**Archivos clave:**
-- `src/hooks/useVoiceSettings.ts` - Hook para configuración de voz
-- `src/components/VoiceSettingsModal.tsx` - Modal de configuración
-- `src/pages/Index.tsx` - Implementación de TTS en cards
-- `src/components/RecipeModal.tsx` - TTS completo en modal
-
-### **3. Importación de Documentos (PDF/DOCX)**
-- ✅ Soporte para archivos PDF con procesamiento multimodal GPT-4o-mini
-- ✅ Soporte para archivos DOCX con extracción avanzada
-- ✅ Conversión de páginas PDF a imágenes para análisis visual
-- ✅ Detección automática de iconos de tiempo y porciones
-- ✅ Generación automática de etiquetas relevantes (3-4 tags)
-- ✅ Clasificación automática de dificultad y tipo de receta
-- ✅ Sistema de preview con thumbnails de páginas
-- ✅ Wizard de 4 pasos para importación PDF
-- ✅ Validación robusta con Zod schemas
-
-**Archivos clave:**
-- `backend/src/services/pdfProcessor.ts` - Procesamiento PDF
-- `backend/src/services/llmServiceImproved.ts` - Análisis con LLM
-- `backend/src/routes/importPdf.ts` - API endpoints PDF
-- `src/components/pdf/PdfImportModal.tsx` - UI principal PDF
-- `backend/src/routes/recipes.ts` - Validación Zod mejorada
-
-### **4. Importación Optimizada de Cookidoo/Thermomix**
-- ✅ **Detección de función Thermomix**: Amasar, Batir, Picar, Mezclar, Triturar, etc.
-- ✅ **Extracción precisa de configuraciones**: Tiempo, temperatura, velocidad
-- ✅ **Limpieza HTML automática**: Elimina tags `<nobr>`, `<br>` y otros
-- ✅ **Prevención de duplicación de unidades**: "40 g" en vez de "40 g g"
-- ✅ **Detección mejorada de porciones**: Manejo de rangos (4-6 → 6)
-- ✅ **Limitación de tags**: Solo 3-4 tags relevantes, sin "recetas similares"
-- ✅ **Soporte para recetas multiparte**: Plato principal, salsas, acompañamientos
-- ✅ **Schema actualizado**: Nuevos campos `function` y `section` en DB
-
-**Archivos clave:**
-- `backend/prisma/schema.prisma` - Campos `function` y `section` agregados
-- `backend/src/services/llmServiceImproved.ts` - Prompts optimizados para Cookidoo
-- `backend/src/routes/importHtml.ts` - Guardado de nuevos campos
-- `src/types/recipe.ts` - Interfaces actualizadas
-- `src/utils/recipeUtils.ts` - Utilidades para function detection
-
-**Mejoras específicas en prompts LLM:**
-- Instrucciones detalladas para extracción de función Thermomix
-- Patrones de detección para tiempo/temperatura/velocidad
-- Reglas anti-duplicación de unidades
-- Cleanup de HTML entities y tags
-- Detección de secciones en recetas complejas
-
-### **5. Gestión de Usuarios y Perfiles**
-- ✅ Sistema de autenticación completo
-- ✅ Edición de perfiles de usuario
-- ✅ Carga de fotos de perfil con preview
-- ✅ Validación de formatos de imagen
-- ✅ Almacenamiento seguro en base de datos
-
-**Archivos clave:**
-- `src/components/EditProfileModal.tsx` - Edición de perfil
-- `backend/src/routes/profile.ts` - API de perfiles
-
-### **6. UI/UX Mejoradas**
-- ✅ Themed components con TasteBox branding
-- ✅ Gradientes y sombras elegantes
-- ✅ Animaciones suaves en hover/focus
-- ✅ Iconografía consistente con Lucide React
-- ✅ Responsive design optimizado
-- ✅ Theme switcher (claro/oscuro)
-- ✅ Loading states y feedback visual
-- ✅ Toasts informativos para acciones
-
-**Archivos clave:**
-- `src/index.css` - Estilos globales y themed variants
-- `src/components/ThemeSwitcher.tsx` - Switcher de tema
-- `src/contexts/ThemeContext.tsx` - Context de tema
-
-### **7. Validación y Manejo de Errores**
-- ✅ Schemas Zod robustos para null/undefined
-- ✅ Manejo de errores en importación de documentos
-- ✅ Cleanup automático de archivos temporales
-- ✅ Validación de tipos TypeScript estricta
-- ✅ Error boundaries y fallbacks
-- ✅ Sistema de cálculo nutricional automático funcional
-
-**Mejoras específicas:**
-- Cambio de `.optional().nullable().transform()` a `.nullable().optional()`
-- Conversión de `null` a `''` en processing
-- Manejo de arrays vacíos en tags e ingredients
-- Timeouts para operaciones de larga duración
-- **FIX**: Validación `recipeType` para aceptar valores `null` en actualizaciones automáticas de nutrición
-
-### **8. Sistema de Cálculo Nutricional**
-- ✅ Cálculo automático de información nutricional con LLM
-- ✅ Modal de información nutricional con etiqueta FDA-style
-- ✅ Integración transparente en actualización de recetas
-- ✅ Manejo robusto de datos nutricionales opcionales
-- ✅ Validación backend corregida para campos nullable
-
-**Archivos clave:**
-- `src/components/NutritionModal.tsx` - Modal principal con auto-cálculo
-- `src/components/NutritionLabel.tsx` - Etiqueta nutricional estilo FDA
-- `src/hooks/useNutritionCalculator.ts` - Hook para cálculos LLM
-- `backend/src/routes/recipes.ts` - Validación Zod corregida (líneas 17, 61)
-
----
-
-## 📋 PLAN: IMPORTACIÓN DE RECETAS EN PDF (COMPLETADO)
-
-### 🎯 **Objetivo**
-Implementar sistema de importación de recetas desde archivos PDF con soporte completo para:
-- Texto extraído de PDF
-- Imágenes y elementos visuales (iconos de tiempo, porciones, fotos)
-- Layout y formato preservado
-- Procesamiento con GPT-5-mini multimodal usando Responses API
-
-### 🏗️ **Arquitectura Propuesta**
-
-```
-PDF Upload → Páginas como Imágenes → GPT-5-mini (Responses API) → Recetas Estructuradas
-     ↓              ↓                         ↓                           ↓
-  pdf-parse    pdf2pic/pdf-img       Multimodal Analysis           JSON Response
-```
-
-### 📦 **Dependencias Nuevas**
 ```bash
-# Backend
-npm install pdf-parse pdf2pic pdf-img canvas
+# Frontend (Vite dev server - port 8080)
+npm run dev
 
-# Alternativos si pdf2pic falla:
-npm install pdf-poppler pdf-to-image
+# Backend (Express API - port 3001/5000 with SSL)
+cd backend && npm run dev
+
+# Build
+npm run build                    # Frontend only
+cd backend && npm run build      # Backend only
+
+# Database
+cd backend && npx prisma generate    # Generate Prisma client
+cd backend && npx prisma db push     # Push schema changes
+cd backend && npx prisma studio      # Visual DB editor
+cd backend && npx prisma db seed     # Seed test data
+
+# Linting and type checking
+npm run lint
+npm run typecheck
+
+# Chrome Extension
+npm run package-extension        # Creates dist/tastebox-extension.zip
 ```
 
-### 🔧 **Componentes a Implementar**
+## Architecture Overview
 
-#### **1. Backend - PDF Processor Service**
-- **Archivo**: `backend/src/services/pdfProcessor.ts`
-- **Responsabilidades**:
-  - Extraer páginas como imágenes (PNG/JPEG)
-  - Almacenar imágenes temporalmente
-  - Extraer texto como fallback
-  - Limpiar archivos temporales
+### Dual Server Setup
+
+**Frontend (Vite)**
+- Port: 8080
+- Dev server with hot reload
+- Build output: `dist/`
+- Production: Served by Nginx
+
+**Backend (Express + HTTPS)**
+- Port: 3001 (dev), 5000 (production)
+- SSL enabled by default (self-signed certs in `backend/ssl/`)
+- Set `SSL_ENABLED=false` to disable HTTPS
+- Serves API at `/api/*` and uploaded files at `/uploads/*`
+
+### Database Schema (Prisma + SQLite)
+
+**Key Models:**
+- `Recipe`: Main recipe entity with nutritional info
+- `Ingredient`: Supports `section` field for multi-part recipes (e.g., "Plato principal", "Salsa")
+- `Instruction`: Includes Thermomix-specific fields:
+  - `function` - Thermomix function (e.g., "Amasar", "Batir", "Picar")
+  - `time` - Duration setting
+  - `temperature` - Temperature setting
+  - `speed` - Speed setting (1-10, Mariposa, Turbo)
+  - `section` - Section for multi-part recipes
+- `RecipeImage`: Multiple images per recipe with ordering
+- `RecipeTag`: Many-to-many relationship with Tag model
+
+**Important:** All models use `@relation(onDelete: Cascade)` - deleting a recipe deletes all related data.
+
+### Import Architecture
+
+The app supports multiple import formats through dedicated routes:
+
+```
+/api/import          - General import (legacy)
+/api/import-html     - HTML/URL import (Instagram, Cookidoo, web)
+/api/import/docx     - DOCX file processing
+/api/import/pdf      - PDF file processing with multimodal GPT-4o-mini
+```
+
+**Import Flow:**
+1. Upload file/URL → Endpoint receives and stores temporarily
+2. Process content → Extract text/images with appropriate parser
+3. LLM extraction → `llmServiceImproved.ts` analyzes content with OpenAI
+4. Review → Frontend shows extracted data for user confirmation
+5. Save → Create recipe with all relations in single transaction
+
+**Key Services:**
+- `llmServiceImproved.ts` - OpenAI integration for recipe extraction
+- `pdfProcessor.ts` - PDF to images conversion (pdf-poppler)
+- `docxProcessor.ts` - DOCX text extraction (mammoth)
+- `imageService.ts` - Image downloading and optimization
+
+### Chrome Extension (Manifest V3)
+
+**Architecture:**
+- `manifest.json` - Permissions and configuration
+- `background.js` - Service worker for API communication
+- `content.js` - Extracts HTML from current page
+- `popup.js` - Authentication and import UI
+- `config.js` - Environment-specific URLs (dev vs production)
+
+**Workflow:**
+1. User clicks extension icon on recipe page
+2. Content script extracts full HTML
+3. Background worker sends to `/api/import-html`
+4. Recipe imported and opens in main app
+
+**Packaging:** `npm run package-extension` creates `dist/tastebox-extension.zip`
+
+### OpenAI Integration
+
+**Models Used:**
+- GPT-4o-mini - Multimodal PDF processing (vision + text)
+- Text-to-Speech API - Recipe narration (Web Speech API fallback)
+- Embeddings - Nutritional calculation
+
+**Key Prompts:**
+- Cookidoo extraction: Optimized for Thermomix function detection
+- PDF extraction: Analyzes images for icons (time, servings, difficulty)
+- Nutrition calculation: Per-serving macronutrient estimation
+
+## Environment Variables
+
+### Backend (.env)
+
+**Required:**
+```bash
+DATABASE_URL="file:./dev.db"           # SQLite (production: ./db/tastebox.db)
+OPENAI_API_KEY="sk-..."                 # OpenAI API key
+JWT_SECRET="your-secret-key"            # JWT signing secret
+PORT=3001                               # API port (3001 dev, 5000 prod)
+NODE_ENV=development                    # development | production
+```
+
+**Optional:**
+```bash
+SSL_ENABLED=true                        # Enable HTTPS (default: true)
+MAX_FILE_SIZE=10485760                  # 10MB default
+UPLOAD_DIR=./uploads                    # Upload directory
+```
+
+### Production
+
+**Database:** Production uses `./db/tastebox.db` (see `.env.production.example`)
+
+**SSL Certificates:** Place in `backend/ssl/`:
+- `tastebox-local-key.pem`
+- `tastebox-local-cert.pem`
+
+## Important Patterns and Gotchas
+
+### 1. Zod Validation - Nullable Fields
+
+Use `.nullable().optional()` for optional database fields, NOT `.optional().nullable()`:
 
 ```typescript
-class PdfProcessor {
-  async processPdfBuffer(buffer: Buffer): Promise<PdfProcessedContent>
-  async convertPageToImage(pageNum: number): Promise<string> // base64 image
-  async extractPageRange(fileId: string, start: number, end: number): Promise<PdfPageData[]>
-  async detectRecipesWithImages(pages: PdfPageData[]): Promise<RecipeDetectionResult>
-}
+// ✅ Correct
+recipeType: z.string().nullable().optional()
+
+// ❌ Wrong - causes validation errors
+recipeType: z.string().optional().nullable()
 ```
 
-#### **2. Backend - LLM Service Update**
-- **Archivo**: `backend/src/services/llmServiceImproved.ts`
-- **Nuevo método**: `extractMultipleRecipesFromPdfPages()`
+### 2. CORS Configuration
 
-```typescript
-async extractMultipleRecipesFromPdfPages(
-  pages: { image: string, text?: string, pageNum: number }[]
-): Promise<{ success: boolean; recipes: any[]; error?: string }>
+Backend allows Chrome extensions in both dev and production:
+- Development: Allows `chrome-extension://*` and `localhost:*`
+- Production: Allows `https://tastebox.beweb.com.ar` and `chrome-extension://*`
+
+Credentials are enabled (`credentials: true`) for JWT cookies.
+
+### 3. Image Handling
+
+Images are downloaded and stored locally for offline access:
+- External URLs → `RecipeImage.url`
+- Downloaded files → `RecipeImage.localPath`
+- Served via `/uploads` with CORS headers
+
+### 4. Multi-part Recipes
+
+Cookidoo recipes often have sections (main dish + sauce + side):
+- Use `Ingredient.section` and `Instruction.section`
+- Same section values should match between ingredients and instructions
+- Frontend groups by section in display
+
+### 5. Thermomix Function Detection
+
+LLM prompts extract Thermomix settings from text patterns:
+- "40 seg/100°C/vel 4" → `time: "40 seg"`, `temperature: "100°C"`, `speed: "vel 4"`
+- "Amasar 3 min/vel Espiga" → `function: "Amasar"`, `time: "3 min"`, `speed: "vel Espiga"`
+
+**HTML Cleanup:** Instructions are cleaned of HTML tags (`<nobr>`, `<br>`) automatically.
+
+### 6. PDF Processing
+
+PDF workflow:
+1. Convert pages to images (pdf-poppler → JPEG)
+2. Send images + text to GPT-4o-mini
+3. Vision model detects icons (time, servings) from visual layout
+4. Store temporary files in `backend/uploads/temp/`
+5. Cleanup after 1 hour
+
+### 7. Deployment
+
+Production deployment uses PM2 + Nginx + CloudPanel:
+
+```bash
+./deploy.sh   # Pulls latest, builds, restarts PM2
 ```
 
-**Prompt para GPT-5-mini**:
-```
-Analiza estas páginas de un documento PDF que contiene recetas de cocina.
+**PM2 Process:**
+- Name: `tastebox`
+- Entry: `backend/dist/index.js`
+- Memory limit: 1GB
+- Logs: `backend/logs/`
 
-IMPORTANTE - Busca y extrae:
-1. ICONOS VISUALES: Iconos de reloj (tiempo), personas (porciones), dificultad
-2. IMÁGENES: Fotos de platos terminados, ingredientes, pasos
-3. TEXTO: Títulos, ingredientes, instrucciones completas
-4. LAYOUT: Usa la disposición visual para entender la estructura
+**Frontend:** Built to `dist/` and served by Nginx at root
+**Backend:** Proxied to `/api` by Nginx
 
-Para cada receta detectada, responde con JSON:
-{
-  "recipes": [
-    {
-      "title": "Título exacto",
-      "description": "Incluir referencias a imágenes si las hay",
-      "prepTime": [NÚMERO de iconos/texto de tiempo prep],
-      "cookTime": [NÚMERO de iconos/texto de tiempo cocción],
-      "servings": [NÚMERO de iconos/texto de porciones],
-      "hasImage": boolean,
-      "ingredients": [...],
-      "instructions": [...],
-      "pageNumbers": [1, 2] // páginas donde aparece
-    }
-  ]
-}
+## Common Tasks
 
-NO inventes tiempos/porciones si no ves iconos o texto específico.
-```
+### Adding a New Import Format
 
-#### **3. Backend - API Routes**
-- **Archivo**: `backend/src/routes/importPdf.ts`
-- **Endpoints**:
-  - `POST /api/import/pdf/upload` - Subir PDF
-  - `POST /api/import/pdf/extract` - Extraer recetas con imágenes
-  - `GET /api/import/pdf/preview/:fileId/:pageRange` - Preview visual
-  - `DELETE /api/import/pdf/cleanup/:fileId` - Limpiar archivos
+1. Create route in `backend/src/routes/import{Format}.ts`
+2. Create processor in `backend/src/services/{format}Processor.ts`
+3. Add LLM extraction method in `llmServiceImproved.ts`
+4. Create frontend modal in `src/components/{Format}ImportModal.tsx`
+5. Add button in `Header.tsx`
 
-#### **4. Frontend - PDF Import Components**
+### Modifying Database Schema
 
-**Componentes nuevos**:
-- `src/components/pdf/PdfImportModal.tsx` - Modal principal
-- `src/components/pdf/PdfUploader.tsx` - Upload con preview PDF
-- `src/components/pdf/PdfPageSelector.tsx` - Selector de páginas con thumbnails
-- `src/components/pdf/PdfRecipeExtractor.tsx` - Procesamiento visual
-- `src/components/pdf/PdfRecipeReviewer.tsx` - Review con imágenes
-
-#### **5. Types - PDF Processing**
-```typescript
-// backend/src/types/pdf.ts y src/types/pdf.ts
-interface PdfProcessedContent {
-  totalPages: number;
-  pageImages: { pageNum: number; imageUrl: string; text?: string }[];
-}
-
-interface PdfExtractedRecipe extends DocxExtractedRecipe {
-  hasImage: boolean;
-  pageNumbers: number[];
-  thumbnailUrl?: string;
-}
+```bash
+# 1. Edit backend/prisma/schema.prisma
+# 2. Create migration
+cd backend && npx prisma migrate dev --name descriptive_name
+# 3. Regenerate client
+npx prisma generate
 ```
 
-### 🎨 **UI/UX Mejoras**
+### Testing Recipe Import
 
-#### **Page Selector con Thumbnails**
-```tsx
-// Vista previa visual de páginas PDF como miniaturas
-<div className="grid grid-cols-4 gap-2">
-  {pageImages.map(page => (
-    <div key={page.pageNum} className="relative">
-      <img src={page.imageUrl} className="w-full h-32 object-cover" />
-      <input type="checkbox" className="absolute top-2 right-2" />
-      <span className="absolute bottom-1 left-1 bg-black/50 text-white text-xs px-1">
-        Página {page.pageNum}
-      </span>
-    </div>
-  ))}
-</div>
-```
+Use test endpoints:
+- `/api/test/pdf` - Test PDF processing
+- `/api/import-html` - Test HTML import with sample Cookidoo URL
 
-#### **Recipe Reviewer con Imágenes**
-- Mostrar thumbnail de la página donde se encontró la receta
-- Indicadores visuales de datos extraídos de iconos vs texto
-- Preview de la imagen de la receta si se detectó
-
-### ⚡ **Flujo de Trabajo**
+## Project Structure
 
 ```
-1. 📄 Usuario sube PDF
-   └── Convertir todas las páginas a imágenes
-   └── Extraer texto como fallback
-   └── Mostrar thumbnails para selección
-
-2. 🖼️ Usuario selecciona rango de páginas
-   └── Mostrar preview visual de páginas seleccionadas
-   └── Confirmar que se ven las recetas
-
-3. 🤖 Procesar con GPT-5-mini
-   └── Enviar imágenes de páginas + texto extraído
-   └── GPT-5-mini analiza contenido visual y textual
-   └── Detecta iconos de tiempo/porciones automáticamente
-
-4. ✅ Review y guardado
-   └── Mostrar recetas con thumbnails de origen
-   └── Indicar qué datos se extrajeron visualmente
-   └── Guardar en base de datos
+tastebox/
+├── src/                          # Frontend React + TypeScript
+│   ├── components/               # React components
+│   │   ├── pdf/, docx/          # Import-specific components
+│   │   └── ui/                  # shadcn/ui base components
+│   ├── hooks/                   # Custom hooks (useVoiceSettings, etc.)
+│   ├── services/                # API clients
+│   └── types/                   # TypeScript interfaces
+├── backend/
+│   ├── src/
+│   │   ├── routes/              # Express route handlers
+│   │   ├── services/            # Business logic (LLM, processors)
+│   │   ├── middleware/          # Auth, validation
+│   │   └── config/              # Environment setup
+│   ├── prisma/                  # Database schema + migrations
+│   ├── uploads/                 # Uploaded files (gitignored)
+│   └── ssl/                     # SSL certificates (gitignored)
+├── extension/                   # Chrome Extension Manifest V3
+└── dist/                        # Production build output
 ```
 
-### 🔧 **Configuración Técnica**
+## Key Dependencies
 
-#### **GPT-5-mini Multimodal Setup (Responses API)**
-```typescript
-const response = await openai.responses.create({
-  model: 'gpt-5-mini', // Costo-optimizado con capacidades multimodales
-  input: [
-    { type: 'text', text: prompt },
-    ...pages.map(page => ({
-      type: 'image_url',
-      image_url: { url: `data:image/jpeg;base64,${page.image}` }
-    }))
-  ],
-  reasoning: {
-    effort: 'minimal' // Velocidad optimizada para tareas de extracción
-  },
-  text: {
-    verbosity: 'medium' // Balance entre detalle y concisión
-  },
-  max_output_tokens: 8000
-  // Usar prompt engineering para JSON estructurado
-});
-```
+- **Frontend:** React 18, Vite, Tailwind, shadcn/ui, Zustand
+- **Backend:** Express, Prisma, Zod, Multer, Sharp
+- **AI:** OpenAI SDK (GPT-4o-mini)
+- **PDF:** pdf-poppler, pdf2pic, pdf-parse
+- **DOCX:** mammoth
+- **Deployment:** PM2, Nginx
 
-#### **✅ Ventajas del Responses API**
-- **Chain of Thought**: Razonamiento paso a paso mejorado
-- **Menos tokens**: Reutilización del razonamiento entre turnos
-- **Mayor cache hit**: Mejor performance
-- **Menor latencia**: Especialmente con `effort: 'minimal'`
+## Production URLs
 
-#### **Image Processing**
-```typescript
-// Convertir PDF páginas a imágenes optimizadas
-const convertOptions = {
-  format: 'jpeg',
-  out_dir: './temp/',
-  out_prefix: 'recipe_page',
-  page: pageNum,
-  quality: 85, // Balance calidad/tamaño
-  width: 1200, // Resolución óptima para GPT-5-mini
-  height: 1600
-};
-```
-
-### 📋 **Lista de Tareas**
-
-#### **Día 1: Setup Backend**
-- [ ] Instalar dependencias PDF (pdf2pic, pdf-parse)
-- [ ] Crear `PdfProcessor` service
-- [ ] Implementar conversión página → imagen
-- [ ] Setup almacenamiento temporal de imágenes
-- [ ] Crear tipos TypeScript para PDF
-
-#### **Día 2: LLM Integration**
-- [ ] Actualizar `LLMServiceImproved` con GPT-5-mini
-- [ ] Implementar `extractMultipleRecipesFromPdfPages()`
-- [ ] Crear prompt optimizado para análisis visual
-- [ ] Testing con documento PDF de ejemplo
-
-#### **Día 3: API Routes**
-- [ ] Crear rutas PDF `/api/import/pdf/*`
-- [ ] Implementar upload con validación PDF
-- [ ] Endpoint de extracción con imágenes
-- [ ] Manejo de archivos temporales y cleanup
-
-#### **Día 4: Frontend Components**
-- [ ] `PdfImportModal` con wizard de 4 pasos
-- [ ] `PdfUploader` con preview de thumbnail
-- [ ] `PdfPageSelector` con grid de miniaturas
-- [ ] Integrar en Header con botón "PDF"
-
-#### **Día 5: Testing & Polish**
-- [ ] Testing con PDF real (tu documento keto)
-- [ ] Validar detección de iconos tiempo/porciones
-- [ ] Verificar extracción de imágenes de recetas
-- [ ] Optimizar prompts según resultados
-
-### 🚨 **Consideraciones Importantes**
-
-#### **Performance**
-- Procesar páginas de a chunks (máx 5 páginas por request)
-- Comprimir imágenes para reducir payload a GPT-5-mini
-- Cachear imágenes procesadas por 1 hora
-
-#### **Fallbacks**
-- Si conversión a imagen falla → usar texto extraído
-- Si GPT-5-mini falla → fallback a processing por texto
-- Validar que PDF tiene contenido antes de procesar
-
-#### **Límites**
-- Máximo 50MB por PDF
-- Máximo 50 páginas por documento
-- Timeout de 5 minutos por procesamiento
-
-### 💰 **Estimación Costos GPT-5-mini**
-- ~10-15 recetas por documento típico
-- ~5-8 páginas con imágenes por procesamiento
-- Costo estimado: [Depende de pricing GPT-5-mini]
-
----
-
-## 📝 **Notas de Implementación**
-
-- Mantener compatibilidad con sistema DOCX existente
-- Reutilizar componentes UI donde sea posible (RecipeReviewer)
-- Logging detallado para debug de extracción visual
-- Considerar agregar opción "Extraer solo texto" como fallback rápido
-
-Este plan debería resultar en una solución robusta que capture tanto iconos visuales como imágenes de recetas desde PDFs, resolviendo los problemas actuales del sistema DOCX.
-- hay un plan creado para agregar importacion de documentos PDF que hay que conitnuar}
+- Frontend: `https://tastebox.beweb.com.ar`
+- Backend API: `https://tastebox.beweb.com.ar:5000`
+- Extension ZIP: `https://tastebox.beweb.com.ar/downloads/tastebox-extension.zip`
